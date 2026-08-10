@@ -4,7 +4,7 @@ The manual web MVP is complete. Authenticated players can manage multiple RuneSc
 
 ## MVP delivered
 
-- Discord/email authentication plus creation, switching, and deletion for up to five character journals.
+- Email authentication plus creation, switching, and deletion for up to five character journals.
 - Supabase-backed characters, goals, manual progress, and visibility.
 - Wiki-backed quest search with skill, subquest, item, icon, and guide data.
 - Wiki-backed monster/drop search with NPC IDs and drop rates.

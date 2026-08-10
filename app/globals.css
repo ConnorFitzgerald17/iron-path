@@ -161,6 +161,12 @@ body::before {
 .detail-header > div > small, .showcase-controls > small { color: #9d8250; font: 8px var(--mono); letter-spacing: .17em; }
 .detail-header h1 { margin: 5px 0 2px; overflow: hidden; color: #f0e6cf; font: 500 26px/1.1 var(--display); text-overflow: ellipsis; white-space: nowrap; }
 .detail-header p { margin: 7px 0 0; max-width: 590px; color: #858b82; font-size: 10px; line-height: 1.5; }
+.detail-description { margin-top: 7px; max-width: 590px; }
+.detail-description summary { width: fit-content; display: flex; align-items: center; gap: 5px; color: #858b82; font: 8px var(--mono); cursor: pointer; list-style: none; }
+.detail-description summary::-webkit-details-marker { display: none; }
+.detail-description summary:hover { color: #b6a478; }
+.detail-description summary svg { transition: transform .2s ease; }
+.detail-description[open] summary svg { transform: rotate(180deg); }
 .detail-actions { display: flex; align-items: center; gap: 7px; }
 .goal-status-button { height: 31px; padding: 0 9px; display: flex; align-items: center; gap: 6px; border: 1px solid #566b4e; border-radius: 3px; color: #b9d2aa; background: #20291d; font-size: 8px; cursor: pointer; white-space: nowrap; }
 .goal-status-button:hover { border-color: var(--moss); color: #d5e8ca; }
@@ -568,15 +574,11 @@ body::before {
 .auth-card > small { display: block; color: #9c824d; font: 8px var(--mono); letter-spacing: .18em; text-align: center; }
 .auth-card h1 { margin: 9px 0 0; color: #eee1c1; font: 400 36px var(--display); text-align: center; }
 .auth-card > p { margin: 14px auto 25px; max-width: 320px; color: #858c83; font-size: 9px; line-height: 1.7; text-align: center; }
-.discord-button, .auth-card form > button { width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #67563a; color: #e6d5ae; background: #29261d; cursor: pointer; }
-.discord-button:hover, .auth-card form > button:hover { border-color: var(--brass); background: #312c1f; }
-.auth-divider { height: 37px; display: flex; align-items: center; color: #686f68; font: 7px var(--mono); }
-.auth-divider::before, .auth-divider::after { height: 1px; flex: 1; content: ""; background: #303530; }
-.auth-divider span { padding: 0 9px; }
 .auth-card form { display: grid; gap: 8px; }
 .auth-card form label { height: 40px; padding: 0 11px; display: flex; align-items: center; gap: 8px; border: 1px solid #383d38; color: #727971; background: #151815; }
 .auth-card form input { width: 100%; border: 0; outline: 0; color: var(--bone); background: transparent; font-size: 10px; }
-.auth-card form > button { color: #172016; border-color: #71895f; background: #91ad79; font-weight: 700; }
+.auth-card form > button { width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #71895f; color: #172016; background: #91ad79; font-weight: 700; cursor: pointer; }
+.auth-card form > button:hover { border-color: var(--brass); background: #312c1f; color: #e6d5ae; }
 .auth-message { margin-top: 12px; padding: 10px; border: 1px solid #44483f; color: #a39d8b; background: #20231e; font-size: 8px; text-align: center; }
 .auth-card footer { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 7px; color: #656c65; font-size: 7px; }
 .auth-card footer svg { color: #7d926f; }

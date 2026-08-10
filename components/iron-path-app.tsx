@@ -540,11 +540,20 @@ function RecommendationPanel({ recommendations, onFollow }: { recommendations: Q
   </section>;
 }
 
-function DetailHeader({ eyebrow, title, subtitle, icon, publicValue, status, derivedStatus = false, onPublic, onStatus, onDelete }: { eyebrow: string; title: string; subtitle: string; icon: React.ReactNode; publicValue: boolean; status?: Goal["status"]; derivedStatus?: boolean; onPublic: () => void; onStatus: () => void; onDelete: () => void }) {
+function DetailHeader({ eyebrow, title, subtitle, collapsibleDescription = false, icon, publicValue, status, derivedStatus = false, onPublic, onStatus, onDelete }: { eyebrow: string; title: string; subtitle: string; collapsibleDescription?: boolean; icon: React.ReactNode; publicValue: boolean; status?: Goal["status"]; derivedStatus?: boolean; onPublic: () => void; onStatus: () => void; onDelete: () => void }) {
   return (
     <header className="detail-header">
       <span className="detail-medallion">{icon}</span>
-      <div><small>{eyebrow}</small><h1>{title}</h1><p>{subtitle}</p></div>
+      <div>
+        <small>{eyebrow}</small>
+        <h1>{title}</h1>
+        {collapsibleDescription ? (
+          <details className="detail-description" key={title}>
+            <summary>Quest description <ChevronDown size={12} /></summary>
+            <p>{subtitle}</p>
+          </details>
+        ) : <p>{subtitle}</p>}
+      </div>
       <div className="detail-actions">
         {derivedStatus ? <span className={`goal-status-button ${status === "complete" ? "complete" : ""}`}>{status === "complete" ? <Check size={13} /> : <RefreshCw size={13} />}{status === "complete" ? "Target reached" : "Synced progress"}</span> : <button className={`goal-status-button ${status === "complete" ? "complete" : ""}`} onClick={onStatus}>{status === "complete" ? <RefreshCw size={13} /> : <Check size={13} />}{status === "complete" ? "Reopen goal" : "Mark complete"}</button>}
         <button className="icon-button" onClick={onDelete} aria-label={`Delete ${title}`} title="Delete goal"><Trash2 size={16} /></button>
@@ -559,7 +568,7 @@ function QuestDetail({ goal, profile, onUpdate, onStatus, onSkill, onCreateSkill
   const readiness = questReadiness(goal, profile.items, skills);
   return (
     <div className="detail-page">
-      <DetailHeader eyebrow="QUEST PATH" title={goal.title} subtitle={goal.description} icon={<BookOpen size={27} />} publicValue={goal.public} status={goal.status} onPublic={() => onUpdate({ ...goal, public: !goal.public })} onStatus={onStatus} onDelete={onDelete} />
+      <DetailHeader eyebrow="QUEST PATH" title={goal.title} subtitle={goal.description} collapsibleDescription icon={<BookOpen size={27} />} publicValue={goal.public} status={goal.status} onPublic={() => onUpdate({ ...goal, public: !goal.public })} onStatus={onStatus} onDelete={onDelete} />
       <div className="readiness-strip">
         <div className="readiness-ring" style={{ "--progress": `${readiness.percent * 3.6}deg` } as React.CSSProperties}><span>{readiness.percent}<small>%</small></span></div>
         <div><small>READINESS</small><strong>{readiness.ready} of {readiness.total} requirements met</strong><p>RuneLite will complete this path when your quest state changes.</p></div>
@@ -929,7 +938,7 @@ function ConnectDialog({ onClose, onReset, characterId, connected }: { onClose: 
         <div className="link-illustration"><span><Unplug size={26} /></span><i /><span><Link2 size={26} /></span></div>
         <ol className="link-steps"><li><b>1</b><span>Install and open the Iron Path RuneLite plugin.</span></li><li><b>2</b><span>Paste this single-use code into its connection panel.</span></li></ol>
         <button className="link-code" disabled={!code} onClick={() => navigator.clipboard?.writeText(code)}><small>LINKING CODE · EXPIRES IN {connected ? remaining : "DEMO"}</small><strong>{code || (error ? "UNAVAILABLE" : "GENERATING…")}</strong><span>{error || "Click to copy"}</span></button>
-        <p className="security-note"><Shield size={15} /> The plugin receives a revocable Iron Path device token. It never sees Jagex, RuneLite, Discord, or email credentials.</p>
+        <p className="security-note"><Shield size={15} /> The plugin receives a revocable Iron Path device token. It never sees Jagex, RuneLite, or email credentials.</p>
         {!connected && <button className="text-button" onClick={() => { onReset(); onClose(); }}><RefreshCw size={14} /> Reset local demo data</button>}
       </div>
     </div>

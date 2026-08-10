@@ -21,7 +21,7 @@ To sync the Collection Log, open it in RuneLite and use its native **Search** bu
 
 1. Create a Supabase project.
 2. Apply the SQL files in `supabase/migrations` in numeric order, including `0003_multiple_characters_authoritative_sync.sql`.
-3. Enable Discord and email OTP providers.
+3. Enable the email OTP provider.
 4. Add local and production callback URLs ending in `/auth/callback`.
 5. Set the publishable and service-role keys in Vercel.
 

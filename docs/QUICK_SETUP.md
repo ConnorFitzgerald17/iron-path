@@ -18,7 +18,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Create a Supabase project.
 2. Run every SQL file in `supabase/migrations` in numeric order in its SQL editor.
-3. Enable email OTP and/or Discord in Authentication providers.
+3. Enable email OTP in Authentication providers.
 4. Add `http://localhost:3000/auth/callback` to the redirect allow-list.
 5. Copy `.env.example` to `.env.local` and set:
 
@@ -47,7 +47,7 @@ A successful import creates a completed `catalog_sync_runs` row and populates it
 
 ## Test the manual MVP
 
-1. Sign in with email or Discord.
+1. Sign in with email.
 2. Create your first character with its RuneScape name and iron type.
 3. Select **New goal**.
 4. Search a quest, or search a monster and select a target drop.
@@ -75,7 +75,7 @@ In the Iron Path plugin settings:
 3. Paste the code into the plugin and connect the currently logged-in character.
 4. Run a manual sync, then reload the web journal.
 
-The plugin receives only a revocable Iron Path device token. It never receives Jagex, RuneLite, Discord, or email credentials.
+The plugin receives only a revocable Iron Path device token. It never receives Jagex, RuneLite, or email credentials.
 
 ## Verification
 
