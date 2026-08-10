@@ -1,4 +1,4 @@
-import { itemIcon } from "./icons";
+import { itemIcon, runeLiteItemIcon } from "./icons";
 import type { CharacterProfile } from "./types";
 
 export const demoProfile: CharacterProfile = {
@@ -35,6 +35,30 @@ export const demoProfile: CharacterProfile = {
     { itemId: 257, name: "Ranarr weed", quantity: 196, icon: itemIcon("Ranarr weed.png"), container: "bank" },
     { itemId: 231, name: "Snape grass", quantity: 144, icon: itemIcon("Snape grass.png"), container: "bank" },
     { itemId: 1617, name: "Uncut diamond", quantity: 68, icon: itemIcon("Uncut diamond.png"), container: "bank" }
+  ],
+  collectionLog: [
+    {
+      key: "bosses:barrows-chests", category: "Bosses", name: "Barrows Chests",
+      obtainedCount: 7, totalCount: 25, capturedAt: new Date(Date.now() - 18 * 60_000).toISOString(),
+      public: true, displayMode: "full", sortOrder: 0,
+      slots: [
+        { itemId: 4708, name: "Ahrim's hood", quantity: 1, icon: runeLiteItemIcon(4708), obtained: true, slotOrder: 0, public: false },
+        { itemId: 4712, name: "Ahrim's robetop", quantity: 0, icon: runeLiteItemIcon(4712), obtained: false, slotOrder: 1, public: false },
+        { itemId: 4714, name: "Ahrim's robeskirt", quantity: 1, icon: runeLiteItemIcon(4714), obtained: true, slotOrder: 2, public: true },
+        { itemId: 4724, name: "Guthan's helm", quantity: 1, icon: runeLiteItemIcon(4724), obtained: true, slotOrder: 3, public: false },
+        { itemId: 4736, name: "Karil's leathertop", quantity: 0, icon: runeLiteItemIcon(4736), obtained: false, slotOrder: 4, public: false },
+        { itemId: 4753, name: "Verac's plateskirt", quantity: 2, icon: runeLiteItemIcon(4753), obtained: true, slotOrder: 5, public: false },
+      ],
+    },
+    {
+      key: "bosses:the-gauntlet", category: "Bosses", name: "The Gauntlet",
+      obtainedCount: 5, totalCount: 7, capturedAt: new Date(Date.now() - 42 * 60_000).toISOString(),
+      public: false, displayMode: "unlocked", sortOrder: 1,
+      slots: [
+        { itemId: 23956, name: "Crystal armour seed", quantity: 3, icon: runeLiteItemIcon(23956), obtained: true, slotOrder: 0, public: true },
+        { itemId: 25859, name: "Enhanced crystal weapon seed", quantity: 0, icon: runeLiteItemIcon(25859), obtained: false, slotOrder: 1, public: false },
+      ],
+    },
   ],
   goals: [
     {

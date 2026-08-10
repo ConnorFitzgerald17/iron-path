@@ -1,10 +1,13 @@
-const origin = process.env.IRON_PATH_API_ORIGIN ?? "http://localhost:3000";
-const secret = process.env.CRON_SECRET;
-if (!secret) throw new Error("CRON_SECRET is required");
+import { syncWikiCatalog } from "@/lib/wiki/catalog";
 
-const response = await fetch(`${origin}/api/catalog/sync`, { method: "POST", headers: { authorization: `Bearer ${secret}` } });
-const body = await response.text();
-if (!response.ok) throw new Error(`Catalog sync failed (${response.status}): ${body}`);
-process.stdout.write(`${body}\n`);
+async function main() {
+  const counts = await syncWikiCatalog();
+  process.stdout.write(`${JSON.stringify({ ok: true, counts })}\n`);
+}
+
+void main().catch((error: unknown) => {
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.exitCode = 1;
+});
 
 export {};

@@ -1,4 +1,5 @@
-import type { BankedXpGoal, GrindGoal, OwnedItem, QuestGoal, XpActivity } from "./types";
+import type { BankedPlanSettings, BankedXpGoal, CharacterProfile, GrindGoal, OwnedItem, QuestGoal, SkillGoal, XpActivity } from "./types";
+import { BANKED_XP_METHODS } from "./xp-catalog";
 
 const LEVEL_XP = [
   0, 0, 83, 174, 276, 388, 512, 650, 801, 969, 1154, 1358, 1584, 1833,
@@ -70,6 +71,98 @@ export function bankedXp(goal: BankedXpGoal) {
     targetXp,
     remaining: Math.max(0, targetXp - projectedXp),
     percent: Math.min(100, Math.round(((projectedXp - goal.currentXp) / Math.max(1, targetXp - goal.currentXp)) * 100))
+  };
+}
+
+export interface BankedMethodResult {
+  id: string;
+  label: string;
+  actions: number;
+  xp: number;
+  locked: boolean;
+  missing: Array<{ itemId: number; name: string; quantity: number }>;
+}
+
+export interface BankedPlanResult {
+  banked: number;
+  projectedXp: number;
+  projectedLevel: number;
+  targetXp: number;
+  remaining: number;
+  percent: number;
+  methods: BankedMethodResult[];
+}
+
+function planItems(items: OwnedItem[], accountType: CharacterProfile["accountType"]) {
+  const allowed = accountType === "Ultimate Ironman" ? new Set(["inventory"]) : new Set(["bank", "inventory"]);
+  const resources = new Map<number, number>();
+  for (const item of items) {
+    if (item.container && !allowed.has(item.container)) continue;
+    resources.set(item.itemId, (resources.get(item.itemId) ?? 0) + item.quantity);
+  }
+  return resources;
+}
+
+export function calculateBankedPlan(
+  skill: string,
+  currentLevel: number,
+  currentXp: number,
+  targetLevel: number,
+  settings: BankedPlanSettings,
+  items: OwnedItem[],
+  accountType: CharacterProfile["accountType"],
+): BankedPlanResult {
+  const resources = planItems(items, accountType);
+  const order = new Map(settings.selectedMethodIds.map((id, index) => [id, index]));
+  const families = new Set<string>();
+  const methods = BANKED_XP_METHODS.filter((method) => method.skill === skill && order.has(method.id))
+    .sort((a, b) => a.stage - b.stage || (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+    .filter((method) => {
+      if (families.has(method.family)) return false;
+      families.add(method.family);
+      return true;
+    });
+  const results: BankedMethodResult[] = [];
+  let total = 0;
+
+  for (const method of methods) {
+    const locked = settings.respectLevels && currentLevel < method.requiredLevel;
+    const possible = locked ? 0 : Math.max(0, Math.floor(Math.min(...method.inputs.map((resource) => (resources.get(resource.itemId) ?? 0) / resource.quantity))));
+    const missing = method.inputs.flatMap((resource) => {
+      const needed = resource.quantity;
+      const available = resources.get(resource.itemId) ?? 0;
+      return available >= needed ? [] : [{ itemId: resource.itemId, name: resource.name, quantity: needed - available }];
+    });
+    if (possible > 0) {
+      for (const resource of method.inputs) resources.set(resource.itemId, (resources.get(resource.itemId) ?? 0) - possible * resource.quantity);
+      if (settings.includeOutputs) {
+        for (const output of method.outputs ?? []) resources.set(output.itemId, (resources.get(output.itemId) ?? 0) + possible * output.quantity);
+      }
+    }
+    const xp = possible * method.xpEach;
+    total += xp;
+    results.push({ id: method.id, label: method.label, actions: possible, xp, locked, missing });
+  }
+
+  const targetXp = xpForLevel(targetLevel);
+  const projectedXp = Math.floor(currentXp + total);
+  return {
+    banked: Math.floor(total),
+    projectedXp,
+    projectedLevel: levelForXp(projectedXp),
+    targetXp,
+    remaining: Math.max(0, targetXp - projectedXp),
+    percent: Math.min(100, Math.round((total / Math.max(1, targetXp - currentXp)) * 100)),
+    methods: results,
+  };
+}
+
+export function skillProgress(goal: SkillGoal) {
+  const targetXp = goal.targetXp || xpForLevel(goal.targetLevel);
+  return {
+    targetXp,
+    remaining: Math.max(0, targetXp - goal.currentXp),
+    percent: goal.currentXp >= targetXp ? 100 : Math.min(99, Math.round((goal.currentXp / Math.max(1, targetXp)) * 100)),
   };
 }
 

@@ -1,5 +1,7 @@
 export type QuestState = "not_started" | "in_progress" | "finished";
-export type GoalKind = "quest" | "grind" | "banked_xp";
+export type GoalKind = "quest" | "grind" | "banked_xp" | "skill";
+export type GoalStatus = "active" | "complete";
+export type RuneScapeAccountType = "Unknown" | "Normal" | "Ironman" | "Hardcore Ironman" | "Ultimate Ironman" | "Group Ironman" | "Hardcore Group Ironman";
 
 export interface SkillSnapshot {
   skill: string;
@@ -40,6 +42,7 @@ export interface QuestGoal {
   wikiUrl: string;
   state: QuestState;
   public: boolean;
+  status?: GoalStatus;
   requirements: QuestRequirement[];
   prerequisites: Array<{ name: string; state: QuestState }>;
   items: QuestItemRequirement[];
@@ -68,6 +71,7 @@ export interface GrindGoal {
   startingKc: number;
   observedKc: number;
   public: boolean;
+  status?: GoalStatus;
   drops: DropRecord[];
 }
 
@@ -84,6 +88,13 @@ export interface XpActivity {
   secondaryQuantity?: number;
 }
 
+export interface BankedPlanSettings {
+  selectedMethodIds: string[];
+  includeOutputs: boolean;
+  respectLevels: boolean;
+  showSecondaries: boolean;
+}
+
 export interface BankedXpGoal {
   id: string;
   kind: "banked_xp";
@@ -93,19 +104,61 @@ export interface BankedXpGoal {
   currentLevel: number;
   currentXp: number;
   public: boolean;
+  status?: GoalStatus;
   includeOutputs: boolean;
   respectLevels: boolean;
   showSecondaries: boolean;
   activities: XpActivity[];
+  selectedMethodIds?: string[];
 }
 
-export type Goal = QuestGoal | GrindGoal | BankedXpGoal;
+export interface SkillGoal {
+  id: string;
+  kind: "skill";
+  title: string;
+  skill: string;
+  targetLevel: number;
+  targetXp: number;
+  currentLevel: number;
+  currentXp: number;
+  sourceGoals: Array<{ goalId: string; title: string; requiredLevel: number }>;
+  bankedPlan?: BankedPlanSettings;
+  public: boolean;
+  status?: GoalStatus;
+}
+
+export type Goal = QuestGoal | GrindGoal | BankedXpGoal | SkillGoal;
+
+export type CollectionLogDisplayMode = "full" | "unlocked" | "summary";
+
+export interface CollectionLogSlot {
+  itemId: number;
+  name: string;
+  icon?: string;
+  quantity: number;
+  obtained: boolean;
+  slotOrder: number;
+  public: boolean;
+}
+
+export interface CollectionLogSection {
+  key: string;
+  category: string;
+  name: string;
+  obtainedCount: number;
+  totalCount: number;
+  capturedAt: string;
+  public: boolean;
+  displayMode: CollectionLogDisplayMode;
+  sortOrder: number;
+  slots: CollectionLogSlot[];
+}
 
 export interface CharacterProfile {
   id: string;
   name: string;
   slug: string;
-  accountType: "Ironman" | "Hardcore Ironman" | "Ultimate Ironman";
+  accountType: RuneScapeAccountType;
   combatLevel: number;
   totalLevel: number;
   visibility: "private" | "public";
@@ -113,11 +166,34 @@ export interface CharacterProfile {
   skills: SkillSnapshot[];
   items: OwnedItem[];
   goals: Goal[];
+  collectionLog: CollectionLogSection[];
+}
+
+export interface CharacterSummary {
+  id: string;
+  name: string;
+  slug: string;
+  accountType: RuneScapeAccountType;
+  combatLevel: number;
+  totalLevel: number;
+  visibility: "private" | "public";
+  lastSyncedAt?: string;
+  createdAt: string;
+}
+
+export interface CharacterSyncState {
+  character: Omit<CharacterSummary, "createdAt">;
+  skills: SkillSnapshot[];
+  quests: Array<{ quest: string; state: QuestState }>;
+  items: Array<{ itemId: number; quantity: number; container: "bank" | "inventory" | "equipment" }>;
+  goals: Array<{ id: string; status: GoalStatus }>;
 }
 
 export interface PluginSnapshotPayload {
   capturedAt: string;
   characterName: string;
+  accountType: Exclude<RuneScapeAccountType, "Unknown">;
+  combatLevel: number;
   skills: SkillSnapshot[];
   quests: Array<{ quest: string; state: QuestState }>;
   items: Array<{ itemId: number; quantity: number; container: string }>;

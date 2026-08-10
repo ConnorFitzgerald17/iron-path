@@ -5,6 +5,10 @@ export function itemIcon(fileName: string) {
   return wikiFile(fileName);
 }
 
+export function runeLiteItemIcon(itemId: number) {
+  return `https://static.runelite.net/cache/item/icon/${itemId}.png`;
+}
+
 export function skillIcon(skill: string) {
   return wikiFile(`${skill} icon.png`);
 }

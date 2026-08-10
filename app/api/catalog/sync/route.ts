@@ -11,6 +11,11 @@ export async function POST(request: Request) {
   try {
     return NextResponse.json({ ok: true, counts: await syncWikiCatalog() });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "catalog_sync_failed" }, { status: 500 });
+    const message = error instanceof Error
+      ? error.message
+      : error && typeof error === "object" && "message" in error && typeof error.message === "string"
+        ? error.message
+        : "catalog_sync_failed";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

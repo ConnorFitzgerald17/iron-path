@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "catalog:sync": "tsx scripts/wiki-sync.ts"
+    "catalog:sync": "node --env-file-if-exists=.env.local --import tsx scripts/wiki-sync.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

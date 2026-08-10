@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { authenticateDevice } from "@/lib/server/plugin-auth";
 import { badRequest, unauthorized } from "@/lib/server/responses";
+import { snapshotSchema } from "@/lib/server/snapshot-schema";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/server";
-
-const snapshotSchema = z.object({
-  capturedAt: z.string().datetime(), characterName: z.string().min(1).max(12),
-  skills: z.array(z.object({ skill: z.string(), level: z.number().int().min(1).max(126), xp: z.number().int().nonnegative() })).max(40),
-  quests: z.array(z.object({ quest: z.string(), state: z.enum(["not_started", "in_progress", "finished"]) })).max(300),
-  items: z.array(z.object({ itemId: z.number().int().positive(), quantity: z.number().int().nonnegative(), container: z.enum(["bank", "inventory", "equipment"]) })).max(2000)
-});
 
 export async function POST(request: Request) {
   const device = await authenticateDevice(request);

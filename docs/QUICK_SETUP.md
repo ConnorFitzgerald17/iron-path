@@ -1,51 +1,26 @@
 # Iron Path: Quick Setup
 
-The quickest way to review Iron Path is local demo mode. It requires Node.js only and stores changes in the browser. Supabase and RuneLite setup are optional until you want real accounts or sync.
+## Run the web app
 
-## 1. Run the local web demo
-
-Requirements:
-
-- Node.js 20.9 or newer.
-- npm 10 or newer.
-
-From the repository root:
+Requirements: Node.js 20.9+ and npm 10+.
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). No environment file is required for demo mode.
+Open [http://localhost:3000](http://localhost:3000).
 
-Useful checks:
+- With a configured `.env.local`, `/` requires sign-in and loads Supabase data.
+- Without Supabase variables, `/` runs the browser-local demo.
 
-```sh
-npm test
-npm run lint
-npm run build
-npm audit --omit=dev
-```
-
-The production build intentionally uses Next.js's webpack builder because it is reliable in restricted local and CI environments.
-
-## 2. Configure Supabase
-
-Skip this section if you only need the browser-local demo.
+## Supabase
 
 1. Create a Supabase project.
-2. Open its SQL editor and run `supabase/migrations/0001_iron_path.sql`.
-3. In Authentication, enable Discord and/or email OTP.
-4. Add callback URLs ending in `/auth/callback`, including:
-   - `http://localhost:3000/auth/callback`
-   - `https://your-domain.example/auth/callback`
-5. Copy the web environment template:
-
-```sh
-cp .env.example .env.local
-```
-
-6. Fill in the values:
+2. Run every SQL file in `supabase/migrations` in numeric order in its SQL editor.
+3. Enable email OTP and/or Discord in Authentication providers.
+4. Add `http://localhost:3000/auth/callback` to the redirect allow-list.
+5. Copy `.env.example` to `.env.local` and set:
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -53,16 +28,14 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 CRON_SECRET=generate-a-long-random-secret
 IRON_PATH_API_ORIGIN=http://localhost:3000
-IRON_PATH_WIKI_USER_AGENT=IronPath/0.1 (https://your-domain.example/contact)
+IRON_PATH_WIKI_USER_AGENT=IronPath/0.1 (your-contact-url-or-email)
 ```
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or commit `.env.local`.
+Never expose the service-role key to browser code or commit `.env.local`. Restart the dev server after changing environment variables.
 
-Restart the development server after changing environment variables.
+## Import the Wiki catalog
 
-## 3. Import the OSRS Wiki catalog
-
-With the configured web server running:
+With the server running:
 
 ```sh
 curl -X POST \
@@ -70,73 +43,46 @@ curl -X POST \
   http://localhost:3000/api/catalog/sync
 ```
 
-The import may take several minutes. It retrieves quest, monster, drop, price-mapping, requirement, and icon metadata from the OSRS Wiki. Review the resulting `catalog_sync_runs` row and server logs after the first import.
+A successful import creates a completed `catalog_sync_runs` row and populates items, quests, monsters, and drops. The first import can take several minutes.
 
-For a hosted environment, schedule this authenticated endpoint using the platform's cron service.
+## Test the manual MVP
 
-## 4. Optional RuneLite development setup
+1. Sign in with email or Discord.
+2. Create your first character with its RuneScape name and iron type.
+3. Select **New goal**.
+4. Search a quest, or search a monster and select a target drop.
+5. Use the `−` and `+` controls to update levels, item quantities, KC, and drops.
+6. Open **Showcase**, select visible goals/drops, publish, and copy the public link.
+7. Reload the page to confirm that the state persists.
 
-The manual web MVP does not require RuneLite.
+## Test the RuneLite plugin
 
-Requirements:
-
-- JDK 11.
-- Gradle 8.x, or a generated compatible Gradle wrapper.
-
-Run the plugin tests:
-
-Clone the separate plugin repository, then run:
+The plugin is a separate repository:
 
 ```sh
 git clone https://github.com/ConnorFitzgerald17/iron-path-runelite.git
 cd iron-path-runelite
-gradle test
+./gradlew test
+./gradlew run
 ```
 
-Launch RuneLite developer mode:
-
-```sh
-gradle run
-```
+To use a Jagex Account, launch RuneLite through the Jagex Launcher and use the plugin in that RuneLite session. Iron Path does not and should not accept Jagex credentials.
 
 In the Iron Path plugin settings:
 
 1. Set **API origin** to `http://localhost:3000`.
-2. Open the web connection dialog and copy its demo linking code.
-3. Paste the code into RuneLite.
-4. Select **Connect account**, then run a manual sync.
+2. In the web journal, select **Plugin** to generate a ten-minute code.
+3. Paste the code into the plugin and connect the currently logged-in character.
+4. Run a manual sync, then reload the web journal.
 
-The plugin stores its token and offline queue against the active RuneScape profile. It never needs Jagex, RuneLite, Discord, or email credentials.
+The plugin receives only a revocable Iron Path device token. It never receives Jagex, RuneLite, Discord, or email credentials.
 
-The current browser dialog uses a bundled demo code. The authenticated endpoint for real expiring codes is implemented, but wiring that endpoint into the dashboard is part of the remaining production work.
+## Verification
 
-## 5. Production checklist
+```sh
+npm test
+npm run lint
+npm run build
+```
 
-Before deploying:
-
-- Use a supported Node.js LTS runtime.
-- Set all environment variables in the hosting provider.
-- Apply the database migration before starting the application.
-- Set correct Supabase site and callback URLs.
-- Run `npm test`, `npm run lint`, `npm run build`, and `npm audit --omit=dev`.
-- Protect the Wiki sync endpoint with a strong cron secret.
-- Use HTTPS for the website and plugin API.
-- Review [Remaining Work](REMAINING_WORK.md), especially the persistence, RLS, throttling, and integration-test sections.
-
-## Common issues
-
-### The app always shows Iron Vale
-
-That is expected in local demo mode. Configure Supabase to enable real authentication, then complete the database-backed dashboard work listed in the remaining-work document.
-
-### Wiki images do not load
-
-Confirm that `oldschool.runescape.wiki` is reachable and that redirects are allowed. Icons use the Wiki's `Special:FilePath` endpoint.
-
-### The catalog endpoint returns 401
-
-The `Authorization` bearer value must exactly match `CRON_SECRET` in the running server environment.
-
-### RuneLite cannot connect locally
-
-Confirm the web server is running, the plugin API origin is `http://localhost:3000`, and no proxy or firewall is blocking localhost access.
+See [Post-MVP Work](REMAINING_WORK.md) for deployment hardening and later features.

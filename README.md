@@ -9,12 +9,18 @@ npm install
 npm run dev
 ```
 
-Without environment variables the app uses a persisted browser demo and the plugin API accepts `demo-device-token`. Copy `.env.example` to `.env.local` and fill in Supabase values to enable real accounts and persistence.
+Without environment variables the app uses a persisted browser demo. Copy `.env.example` to `.env.local` and fill in Supabase values to enable real accounts, Wiki-backed goal creation, account-aware recommendations, chained banked-XP calculations, Collection Log showcases, and RuneLite linking.
+
+Linked RuneLite clients refresh dashboard state every 15 seconds while automatic sync is enabled. Goal completion and reopening can be initiated from either surface without overwriting other goal settings.
+
+Each web account can hold up to five journals. Link every RuneScape character once from its selected journal; RuneLite then keeps the RSN, exact account mode, combat level, total level, skills, quests, items, loot, and Collection Log isolated by RuneScape profile.
+
+To sync the Collection Log, open it in RuneLite and use its native **Search** button once. Iron Path captures the authoritative item-count transmission, queues each section against the active RuneScape profile, and exposes only sections or individual obtained items selected in Showcase settings.
 
 ## Supabase
 
 1. Create a Supabase project.
-2. Apply `supabase/migrations/0001_iron_path.sql`.
+2. Apply the SQL files in `supabase/migrations` in numeric order, including `0003_multiple_characters_authoritative_sync.sql`.
 3. Enable Discord and email OTP providers.
 4. Add local and production callback URLs ending in `/auth/callback`.
 5. Set the publishable and service-role keys in Vercel.
@@ -34,7 +40,7 @@ The importer reads the Quest, Infobox Monster, and Dropsline Bucket datasets, `M
 ## Documentation
 
 - [`docs/QUICK_SETUP.md`](docs/QUICK_SETUP.md) — local demo, Supabase, Wiki import, and optional RuneLite setup.
-- [`docs/REMAINING_WORK.md`](docs/REMAINING_WORK.md) — launch blockers, follow-up work, delivery order, and MVP acceptance criteria.
+- [`docs/REMAINING_WORK.md`](docs/REMAINING_WORK.md) — completed MVP scope, launch hardening, and later product work.
 
 ## Verification
 
