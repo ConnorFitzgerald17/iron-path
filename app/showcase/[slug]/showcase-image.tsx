@@ -63,7 +63,7 @@ export async function renderShowcaseImage(slug: string) {
           {goals.length ? goals.map((goal, index) => (
             <div key={goal.id} style={{ minHeight: 59, display: "flex", alignItems: "center", borderBottom: index < goals.length - 1 ? "1px solid #292e29" : "none" }}>
               <div style={{ width: 28, height: 28, marginRight: 13, display: "flex", alignItems: "center", justifyContent: "center", color: "#161816", backgroundColor: "#d5ad55", fontSize: 14, fontWeight: 700 }}>
-                {index + 1}
+                {String(index + 1)}
               </div>
               <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
                 <div style={{ color: "#d9d1bd", fontSize: 20, whiteSpace: "nowrap", overflow: "hidden" }}>{goal.title}</div>
@@ -73,7 +73,7 @@ export async function renderShowcaseImage(slug: string) {
           )) : showcasedSkills.map((skill, index) => (
             <div key={skill.skill} style={{ minHeight: 47, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: index < showcasedSkills.length - 1 ? "1px solid #292e29" : "none" }}>
               <div style={{ color: "#d9d1bd", fontSize: 19 }}>{skill.skill}</div>
-              <div style={{ color: "#f2ce73", fontSize: 23, fontWeight: 700 }}>{skill.level}</div>
+              <div style={{ color: "#f2ce73", fontSize: 23, fontWeight: 700 }}>{String(skill.level)}</div>
             </div>
           ))}
         </div>
@@ -81,7 +81,7 @@ export async function renderShowcaseImage(slug: string) {
 
       <div style={{ height: 104, display: "flex", alignItems: "stretch", borderTop: "1px solid #3a3e37" }}>
         <div style={{ width: 258, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div style={{ color: "#f2ce73", fontSize: 35, fontWeight: 700 }}>{profile?.goals.length ?? 0}</div>
+          <div style={{ color: "#f2ce73", fontSize: 35, fontWeight: 700 }}>{String(profile?.goals.length ?? 0)}</div>
           <div style={{ marginTop: 5, color: "#777f76", fontSize: 13, letterSpacing: 2 }}>SHOWCASED PATHS</div>
         </div>
         <div style={{ width: 258, display: "flex", flexDirection: "column", justifyContent: "center", borderLeft: "1px solid #30352f", paddingLeft: 34 }}>

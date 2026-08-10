@@ -5,7 +5,6 @@ import { ArrowLeft, BookOpen, Eye, Gem, Shield, Swords, Target, Trophy, Zap } fr
 import { bankedXp, fullNumber, grindProgress, questReadiness, skillProgress } from "@/lib/calculations";
 import { accountTypeLabel } from "@/lib/character-display";
 import { loadPublicProfile } from "@/lib/server/public-profile";
-import { visibleShowcaseSkills } from "@/lib/skill-showcase";
 import type { CharacterProfile, Goal } from "@/lib/types";
 import { ItemImage } from "@/components/item-image";
 import { CollectionLogShowcase } from "@/components/collection-log-showcase";
@@ -17,9 +16,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const profile = await loadPublicProfile(slug);
   if (!profile) return { title: "Private path · Iron Path" };
-  const title = `${profile.name}'s iron path`;
-  const showcasedSkillCount = visibleShowcaseSkills(profile.skills, profile.skillShowcase).length;
-  const description = `${profile.name} is showcasing ${profile.goals.length} Old School RuneScape goals and ${showcasedSkillCount} skill stats.`;
+  const title = `${profile.name}'s profile on IronPath OSRS`;
+  const description = "Quest readiness, item grinds, banked XP, and a trophy case for Old School RuneScape iron accounts.";
   return {
     title,
     description,
