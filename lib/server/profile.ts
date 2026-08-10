@@ -13,6 +13,7 @@ import type {
 import { createAdminClient } from "@/lib/supabase/server";
 import { defaultMethodIds } from "@/lib/xp-catalog";
 import { xpForLevel } from "@/lib/calculations";
+import { resolvedCombatLevel } from "@/lib/character-display";
 
 type GoalRow = {
   id: string;
@@ -176,7 +177,7 @@ function hydrateGoal(
 
 export async function loadCharacterProfile(character: CharacterRow, options: { publicOnly?: boolean } = {}): Promise<CharacterProfile> {
   const admin = createAdminClient();
-  const [skillsResult, questsResult, itemsResult, goalsResult, lootResult, collectionResult, collectionSlotsResult, showcaseResult] = await Promise.all([
+  const [skillsResult, questsResult, itemsResult, goalsResult, lootResult, collectionResult, collectionSlotsResult, showcaseResult, skillShowcaseResult] = await Promise.all([
     admin.from("character_skills").select("skill, level, xp").eq("character_id", character.id).order("skill"),
     admin.from("character_quests").select("quest_key, state").eq("character_id", character.id),
     admin.from("character_items").select("item_id, container, quantity").eq("character_id", character.id),
@@ -185,12 +186,17 @@ export async function loadCharacterProfile(character: CharacterRow, options: { p
     admin.from("collection_log_sections").select("section_key, category, name, obtained_count, total_count, captured_at").eq("character_id", character.id).order("category").order("name"),
     loadAllCollectionSlots(character.id),
     admin.from("collection_log_showcase").select("selection_key, selection_type, section_key, item_id, display_mode, sort_order").eq("character_id", character.id).order("sort_order"),
+    admin.from("character_skill_showcase").select("skill_key, sort_order").eq("character_id", character.id).order("sort_order"),
   ]);
 
-  const queryError = skillsResult.error ?? questsResult.error ?? itemsResult.error ?? goalsResult.error ?? lootResult.error ?? collectionResult.error ?? collectionSlotsResult.error ?? showcaseResult.error;
+  const queryError = skillsResult.error ?? questsResult.error ?? itemsResult.error ?? goalsResult.error ?? lootResult.error ?? collectionResult.error ?? collectionSlotsResult.error ?? showcaseResult.error ?? skillShowcaseResult.error;
   if (queryError) throw new Error(queryError.message);
 
   const itemRows = itemsResult.data ?? [];
+  const collectionLogTotals = (collectionResult.data ?? []).reduce((totals, section) => ({
+    obtainedCount: totals.obtainedCount + Number(section.obtained_count),
+    totalCount: totals.totalCount + Number(section.total_count),
+  }), { obtainedCount: 0, totalCount: 0 });
   const itemIds = [...new Set([...itemRows.map((row) => Number(row.item_id)), ...(collectionSlotsResult.data ?? []).map((row) => Number(row.item_id))])];
   const catalogResult = itemIds.length
     ? await loadCatalogItems(itemIds)
@@ -218,6 +224,7 @@ export async function loadCharacterProfile(character: CharacterRow, options: { p
   }));
   const goals = (goalsResult.data ?? []).map((row) => hydrateGoal(rowToGoal(row as GoalRow), skills, items, questStates, loot, Boolean(character.last_synced_at)));
   const selections = showcaseResult.data ?? [];
+  const showcasedSkillKeys = (skillShowcaseResult.data ?? []).map((row) => String(row.skill_key));
   const sectionSelections = new Map(selections.filter((row) => row.selection_type === "section").map((row) => [String(row.section_key), row]));
   const itemSelections = new Set(selections.filter((row) => row.selection_type === "item").map((row) => `${row.section_key}:${row.item_id}`));
   const collectionLog = (collectionResult.data ?? []).map((section) => {
@@ -244,13 +251,18 @@ export async function loadCharacterProfile(character: CharacterRow, options: { p
     name: character.name,
     slug: character.slug,
     accountType: character.account_type,
-    combatLevel: character.combat_level,
+    combatLevel: resolvedCombatLevel(character.combat_level, skills),
     totalLevel: character.total_level,
     visibility: character.visibility,
     lastSyncedAt: character.last_synced_at ?? undefined,
     skills,
+    skillShowcase: {
+      all: showcasedSkillKeys.includes("*"),
+      skills: showcasedSkillKeys.filter((skill) => skill !== "*"),
+    },
     items,
     goals,
+    collectionLogTotals,
     collectionLog,
   };
 }

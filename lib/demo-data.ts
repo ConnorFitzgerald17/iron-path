@@ -23,6 +23,7 @@ export const demoProfile: CharacterProfile = {
     { skill: "Thieving", level: 72, xp: 992895 },
     { skill: "Fletching", level: 78, xp: 1629200 }
   ],
+  skillShowcase: { all: false, skills: ["magic", "prayer", "construction"] },
   items: [
     { itemId: 8778, name: "Oak plank", quantity: 124, icon: itemIcon("Oak plank.png"), container: "bank" },
     { itemId: 1941, name: "Swamp paste", quantity: 42, icon: itemIcon("Swamp paste.png"), container: "bank" },
@@ -36,6 +37,7 @@ export const demoProfile: CharacterProfile = {
     { itemId: 231, name: "Snape grass", quantity: 144, icon: itemIcon("Snape grass.png"), container: "bank" },
     { itemId: 1617, name: "Uncut diamond", quantity: 68, icon: itemIcon("Uncut diamond.png"), container: "bank" }
   ],
+  collectionLogTotals: { obtainedCount: 12, totalCount: 32 },
   collectionLog: [
     {
       key: "bosses:barrows-chests", category: "Bosses", name: "Barrows Chests",

@@ -1,8 +1,10 @@
 import { IronPathApp } from "@/components/iron-path-app";
 import { CharacterOnboarding } from "@/components/character-onboarding";
+import { SignupClosed } from "@/components/signup-closed";
 import { loadCharacterProfile, type CharacterRow } from "@/lib/server/profile";
 import { ACTIVE_CHARACTER_COOKIE, characterSummary, chooseCharacter, type CharacterSummaryRow } from "@/lib/server/characters";
 import { createAdminClient, createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { signupsEnabled } from "@/lib/server/feature-flags";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -19,7 +21,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     .select("id, name, slug, account_type, combat_level, total_level, visibility, last_synced_at, created_at")
     .eq("user_id", user.id).order("created_at");
   if (error) throw new Error(error.message);
-  if (!rows?.length) return <CharacterOnboarding />;
+  if (!rows?.length) return signupsEnabled() ? <CharacterOnboarding /> : <SignupClosed />;
 
   const characters = rows.map((row) => characterSummary(row as CharacterSummaryRow));
   const requested = (await searchParams).character;

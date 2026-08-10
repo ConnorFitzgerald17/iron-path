@@ -1,14 +1,15 @@
 "use client";
 
 import {
-  BookOpen, Check, ChevronDown, ChevronRight, CircleHelp, ExternalLink,
+  BarChart3, BookOpen, Check, ChevronDown, ChevronRight, CircleHelp, ExternalLink,
   Copy, Eye, EyeOff, Gem, LayoutDashboard, Link2, LoaderCircle, LockKeyhole,
   LogOut, Menu, Minus, Plus, RefreshCw, Search, Settings,
   Shield, Sparkles, Target, Trash2, Trophy, Unplug, UserRound, X, Zap
 } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { bankedXp, calculateBankedPlan, compactNumber, fullNumber, grindProgress, ownedQuantity, questReadiness, skillProgress, xpForLevel } from "@/lib/calculations";
+import { accountTypeLabel } from "@/lib/character-display";
 import { demoProfile, quickAddGoals } from "@/lib/demo-data";
 import { skillIcon } from "@/lib/icons";
 import { createClient as createBrowserClient } from "@/lib/supabase/browser";
@@ -16,8 +17,11 @@ import type { BankedXpGoal, CharacterProfile, CharacterSummary, CharacterSyncSta
 import { mergeCharacterSyncState } from "@/lib/sync-state";
 import { BANKABLE_SKILLS, bankedMethodsForSkill, defaultMethodIds, methodsForSkill } from "@/lib/xp-catalog";
 import { questRecommendations, skillGoalFromRecommendation, type QuestRecommendation } from "@/lib/recommendations";
+import { skillShowcaseKey, sortedSkills, visibleShowcaseSkills } from "@/lib/skill-showcase";
 import { ItemImage } from "./item-image";
 import { CollectionLogShowcase } from "./collection-log-showcase";
+import { SkillShowcase } from "./skill-showcase";
+import { CharacterEnrollment } from "./character-enrollment";
 
 const STORAGE_KEY = "iron-path-demo-profile-v1";
 
@@ -27,7 +31,12 @@ function readProfile(): CharacterProfile {
     const value = window.localStorage.getItem(STORAGE_KEY);
     if (!value) return demoProfile;
     const parsed = JSON.parse(value) as CharacterProfile;
-    return { ...parsed, collectionLog: parsed.collectionLog ?? [] };
+    const collectionLog = parsed.collectionLog ?? [];
+    const collectionLogTotals = parsed.collectionLogTotals ?? collectionLog.reduce((totals, section) => ({
+      obtainedCount: totals.obtainedCount + section.obtainedCount,
+      totalCount: totals.totalCount + section.totalCount,
+    }), { obtainedCount: 0, totalCount: 0 });
+    return { ...parsed, collectionLog, collectionLogTotals, skillShowcase: parsed.skillShowcase ?? { all: false, skills: [] } };
   } catch {
     return demoProfile;
   }
@@ -43,10 +52,6 @@ function timeAgo(iso?: string) {
 
 function characterInitials(name: string) {
   return name.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "IP";
-}
-
-function accountTypeLabel(accountType: CharacterProfile["accountType"]) {
-  return accountType === "Unknown" ? "Awaiting RuneLite" : accountType;
 }
 
 function goalIcon(goal: Goal) {
@@ -289,6 +294,25 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     }).then((response) => { if (!response.ok) setNotice("Collection showcase settings could not be saved."); });
   };
 
+  const updateSkillShowcase = (skill: string, value: boolean, sortOrder = 0) => {
+    const skillKey = skill === "*" ? "*" : skillShowcaseKey(skill);
+    setProfile((current) => ({
+      ...current,
+      skillShowcase: skillKey === "*"
+        ? { ...current.skillShowcase, all: value }
+        : {
+          ...current.skillShowcase,
+          skills: value
+            ? [...new Set([...current.skillShowcase.skills, skillKey])]
+            : current.skillShowcase.skills.filter((selected) => selected !== skillKey),
+        },
+    }));
+    if (connected) void fetch("/api/app/skill-showcase", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ characterId: profile.id, skill, public: value, sortOrder }),
+    }).then((response) => { if (!response.ok) setNotice("Stat showcase settings could not be saved."); });
+  };
+
   const updateManual = async (body: Record<string, unknown>) => {
     if (!connected) return;
     setSaving(true);
@@ -322,6 +346,10 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
   const updateQuest = (quest: string, state: QuestState) => void updateManual({ type: "quest", quest, state });
 
   const updateVisibility = (visibility: CharacterProfile["visibility"]) => {
+    if (visibility === "public" && !profile.lastSyncedAt) {
+      setNotice("Connect RuneLite before publishing this profile.");
+      return;
+    }
     setProfile((current) => ({ ...current, visibility }));
     if (connected) void fetch("/api/app/character", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ characterId: profile.id, visibility }) }).then((response) => { if (!response.ok) setNotice("Profile visibility could not be saved."); });
   };
@@ -393,7 +421,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     <div className="app-frame">
       <aside className={`sidebar ${mobileNav ? "sidebar--open" : ""}`}>
         <div className="brand-lockup">
-          <span className="brand-mark"><span />IP</span>
+          <span className="brand-mark" aria-hidden="true" />
           <div><strong>IRON PATH</strong><small>field journal</small></div>
           <button className="icon-button sidebar-close" onClick={() => setMobileNav(false)} aria-label="Close navigation"><X size={19} /></button>
         </div>
@@ -401,7 +429,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
         <div className={`character-switcher ${characterMenuOpen ? "open" : ""}`}>
           <button className="character-card" aria-haspopup="menu" aria-expanded={characterMenuOpen} onClick={() => connected && setCharacterMenuOpen((value) => !value)}>
             <span className="character-sigil">{characterInitials(profile.name)}</span>
-            <span><strong>{profile.name}</strong><small>{accountTypeLabel(profile.accountType)} · {profile.totalLevel}</small></span>
+            <span><strong>{profile.name}</strong><small>{accountTypeLabel(profile.accountType, profile.lastSyncedAt)} · {profile.totalLevel}</small></span>
             {connected && <ChevronDown size={15} />}
           </button>
           {connected && characterMenuOpen && <div className="character-menu" role="menu">
@@ -409,7 +437,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
             <div>{characterList.map((character) => <div className={character.id === profile.id ? "active" : ""} key={character.id}>
               <button role="menuitem" disabled={Boolean(characterBusy)} onClick={() => void switchCharacter(character)}>
                 <span className="character-sigil">{characterInitials(character.name)}</span>
-                <span><strong>{character.name}</strong><small>{accountTypeLabel(character.accountType)} · {character.totalLevel}</small></span>
+                <span><strong>{character.name}</strong><small>{accountTypeLabel(character.accountType, character.lastSyncedAt)} · {character.totalLevel}</small></span>
                 {characterBusy === character.id ? <LoaderCircle className="spin" size={14} /> : character.id === profile.id ? <Check size={14} /> : <ChevronRight size={14} />}
               </button>
               <button className="character-delete" disabled={Boolean(characterBusy)} onClick={() => void deleteCharacter(character)} aria-label={`Delete ${character.name}`} title={`Delete ${character.name}`}><Trash2 size={13} /></button>
@@ -469,7 +497,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
 
         <div className="workspace">
           {showcaseMode ? (
-            <Showcase profile={profile} onVisibility={updateVisibility} onGoalPublic={(goal) => updateGoal(goal.id, () => ({ ...goal, public: !goal.public }))} onCollection={updateCollectionSelection} />
+            <Showcase profile={profile} onVisibility={updateVisibility} onGoalPublic={(goal) => updateGoal(goal.id, () => ({ ...goal, public: !goal.public }))} onSkill={updateSkillShowcase} onCollection={updateCollectionSelection} />
           ) : (
             <>
               <section className="goal-column">
@@ -945,8 +973,11 @@ function ConnectDialog({ onClose, onReset, characterId, connected }: { onClose: 
   );
 }
 
-function Showcase({ profile, onVisibility, onGoalPublic, onCollection }: { profile: CharacterProfile; onVisibility: (value: CharacterProfile["visibility"]) => void; onGoalPublic: (goal: Goal) => void; onCollection: (sectionKey: string, selectionType: "section" | "item", value: boolean, displayMode: CollectionLogDisplayMode, itemId?: number) => void }) {
+function Showcase({ profile, onVisibility, onGoalPublic, onSkill, onCollection }: { profile: CharacterProfile; onVisibility: (value: CharacterProfile["visibility"]) => void; onGoalPublic: (goal: Goal) => void; onSkill: (skill: string, value: boolean, sortOrder?: number) => void; onCollection: (sectionKey: string, selectionType: "section" | "item", value: boolean, displayMode: CollectionLogDisplayMode, itemId?: number) => void }) {
   const publicGoals = profile.goals.filter((goal) => goal.public);
+  const orderedSkills = sortedSkills(profile.skills);
+  const visibleSkills = visibleShowcaseSkills(profile.skills, profile.skillShowcase);
+  const selectedSkillKeys = new Set(profile.skillShowcase.skills.map(skillShowcaseKey));
   const categoryOrder = ["Bosses", "Raids", "Clues", "Minigames", "Other"];
   const extraCategories = [...new Set(profile.collectionLog.map((section) => section.category))].filter((category) => !categoryOrder.includes(category)).sort((a, b) => a.localeCompare(b));
   const categories = [...categoryOrder, ...extraCategories];
@@ -985,6 +1016,16 @@ function Showcase({ profile, onVisibility, onGoalPublic, onCollection }: { profi
         <div className="showcase-toggles">
           {profile.goals.map((goal) => <button key={goal.id} onClick={() => onGoalPublic(goal)}><span className={`goal-kind goal-kind--${goal.kind}`}>{goalIcon(goal)}</span><strong>{goal.title}</strong><i className={goal.public ? "on" : ""}><b /></i></button>)}
         </div>
+        <h2>Visible stats <span>{visibleSkills.length}/{profile.skills.length}</span></h2>
+        <div className="skill-showcase-controls">
+          <button className={`show-all-skills ${profile.skillShowcase.all ? "active" : ""}`} aria-pressed={profile.skillShowcase.all} onClick={() => onSkill("*", !profile.skillShowcase.all)}><BarChart3 size={17} /><span><strong>Show all stats</strong><small>{profile.skillShowcase.all ? "Every synced skill is public" : "Publish the full account build"}</small></span><i className={profile.skillShowcase.all ? "on" : ""}><b /></i></button>
+          <div className="skill-showcase-picker">{orderedSkills.map((skill, index) => {
+            const skillKey = skillShowcaseKey(skill.skill);
+            const selected = profile.skillShowcase.all || selectedSkillKeys.has(skillKey);
+            return <button className={selected ? "active" : ""} disabled={profile.skillShowcase.all} aria-pressed={selected} key={skillKey} onClick={() => onSkill(skill.skill, !selectedSkillKeys.has(skillKey), index)}><ItemImage src={skillIcon(skill.skill)} alt={skill.skill} size={23} /><span><strong>{skill.skill}</strong><small>Level {skill.level}</small></span>{selected ? <Eye size={12} /> : <EyeOff size={12} />}</button>;
+          })}</div>
+          {profile.skillShowcase.all && <small className="skill-showcase-hint">Turn off “Show all stats” to choose individual skills.</small>}
+        </div>
         <div className="collection-heading"><span><h2>Collection log</h2><small>{profile.collectionLog.filter((section) => section.public).length} sections showcased</small></span><strong>{collectionObtained}/{collectionTotal}</strong></div>
         {profile.collectionLog.length > 0 ? <div className="collection-browser">
           <label className="collection-search"><Search size={14} /><input value={collectionQuery} onChange={(event) => setCollectionQuery(event.target.value)} placeholder="Search sections or items" aria-label="Search collection log" />{collectionQuery && <button onClick={() => setCollectionQuery("")} aria-label="Clear collection search"><X size={13} /></button>}</label>
@@ -1018,17 +1059,17 @@ function Showcase({ profile, onVisibility, onGoalPublic, onCollection }: { profi
       <section className="showcase-preview">
         <div className="preview-label"><Eye size={14} /> PUBLIC PREVIEW</div>
         <div className="public-profile-card">
-          <div className="profile-banner"><div className="banner-grid" /><span className="character-sigil">{characterInitials(profile.name)}</span><div><small>{accountTypeLabel(profile.accountType)}</small><h2>{profile.name}</h2><p>Combat {profile.combatLevel} · Total {profile.totalLevel}</p></div><span className="iron-seal"><Shield size={17} /> {profile.accountType === "Normal" ? "MAIN" : profile.accountType === "Unknown" ? "UNLINKED" : "IRON"}</span></div>
-          <div className="public-stats"><span><small>ACTIVE PATHS</small><strong>{publicGoals.length}</strong></span><span><small>TOTAL LEVEL</small><strong>{profile.totalLevel}</strong></span><span><small>LAST SYNC</small><strong>{timeAgo(profile.lastSyncedAt)}</strong></span></div>
-          <div className="public-goals">
+          <div className="profile-banner"><div className="banner-grid" /><span className="character-sigil">{characterInitials(profile.name)}</span><div><small>{accountTypeLabel(profile.accountType, profile.lastSyncedAt)}</small><h2>{profile.name}</h2><p>Combat {profile.combatLevel} · Total {profile.totalLevel}</p></div><span className="iron-seal"><Shield size={17} /> {profile.accountType === "Normal" ? "MAIN" : profile.accountType === "Unknown" ? profile.lastSyncedAt ? "SYNCED" : "UNLINKED" : "IRON"}</span></div>
+          <div className="public-stats"><span><small>ACTIVE PATHS</small><strong>{publicGoals.length}</strong></span><span><small>COLLECTION LOG</small><strong>{profile.collectionLogTotals.obtainedCount}/{profile.collectionLogTotals.totalCount}</strong></span><span><small>COMBAT LEVEL</small><strong>{profile.combatLevel}</strong></span><span><small>TOTAL LEVEL</small><strong>{profile.totalLevel}</strong></span></div>
+          <SkillShowcase skills={profile.skills} selection={profile.skillShowcase} />
+          {publicGoals.length > 0 && <div className="public-goals">
             {publicGoals.map((goal) => {
               const meta = goalMeta(goal, profile);
               return <div key={goal.id}><span className={`goal-kind goal-kind--${goal.kind}`}>{goalIcon(goal)}</span><span><small>{goal.kind.replace("_", " ")}</small><strong>{goal.title}</strong><i><b style={{ width: `${meta.percent}%` }} /></i></span><em>{meta.label}</em></div>;
             })}
-            {!publicGoals.length && <div className="empty-showcase"><Gem size={24} /><span><strong>Nothing showcased yet</strong><small>Toggle a goal on the left.</small></span></div>}
-          </div>
+          </div>}
           <CollectionLogShowcase sections={profile.collectionLog} />
-          <footer><span className="brand-mark brand-mark--small"><span />IP</span><strong>IRON PATH</strong><small>Data synced from RuneLite</small></footer>
+          <footer><span className="brand-mark brand-mark--small" aria-hidden="true" /><strong>IRON PATH</strong><small>Data synced from RuneLite</small></footer>
         </div>
       </section>
     </div>
@@ -1036,38 +1077,12 @@ function Showcase({ profile, onVisibility, onGoalPublic, onCollection }: { profi
 }
 
 function CharacterDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (character: CharacterSummary) => void }) {
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setSaving(true);
-    setError("");
-    const response = await fetch("/api/app/characters", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    const body = await response.json().catch(() => ({})) as { character?: CharacterSummary; error?: string };
-    if (!response.ok || !body.character) {
-      setSaving(false);
-      setError(body.error === "character_limit" ? "You already have five characters." : body.error ?? "Could not create that character.");
-      return;
-    }
-    onCreated(body.character);
-  };
-
   return <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="character-create-title">
     <button className="modal-backdrop" onClick={onClose} aria-label="Close" />
     <div className="modal-panel modal-panel--narrow character-create-panel">
-      <header><div><small>NEW JOURNAL</small><h2 id="character-create-title">Add a character</h2></div><button className="icon-button" onClick={onClose}><X size={19} /></button></header>
-      <p>Give the journal an initial RuneScape name. The first linked snapshot will confirm its RSN, account mode, combat level, and skills.</p>
-      <form onSubmit={(event) => void submit(event)}>
-        <label><span>RuneScape name</span><input autoFocus required minLength={1} maxLength={12} value={name} onChange={(event) => setName(event.target.value)} placeholder="Your RSN" /></label>
-        <button className="primary-action" disabled={saving}>{saving ? <LoaderCircle className="spin" size={15} /> : <Plus size={15} />} {saving ? "Opening journal…" : "Create and switch"}</button>
-      </form>
-      {error && <div className="form-error">{error}</div>}
+      <header><div><small>VERIFIED JOURNAL</small><h2 id="character-create-title">Add a RuneLite character</h2></div><button className="icon-button" onClick={onClose}><X size={19} /></button></header>
+      <p>The journal is created from the logged-in RuneLite character, never from an unverified name.</p>
+      <CharacterEnrollment onCreated={onCreated} />
     </div>
   </div>;
 }

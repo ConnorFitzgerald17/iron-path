@@ -8,6 +8,6 @@ export async function authenticatedUser() {
 
 export async function ownedCharacter(characterId: string, userId: string) {
   const admin = createAdminClient();
-  const { data } = await admin.from("characters").select("id").eq("id", characterId).eq("user_id", userId).maybeSingle();
+  const { data } = await admin.from("characters").select("id, last_synced_at").eq("id", characterId).eq("user_id", userId).maybeSingle();
   return data;
 }

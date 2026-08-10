@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { chooseCharacter } from "@/lib/server/characters";
+import { baseCharacterSlug, chooseCharacter } from "@/lib/server/characters";
+import { createLinkCode, normalizeLinkCode } from "@/lib/server/plugin-auth";
 import { mergeCharacterSyncState } from "@/lib/sync-state";
 import { snapshotSchema } from "@/lib/server/snapshot-schema";
 import { demoProfile } from "@/lib/demo-data";
@@ -11,6 +12,19 @@ const characters: CharacterSummary[] = [
 ];
 
 describe("multi-character selection and synchronization", () => {
+  it("creates safe slugs only from RuneLite-verified names", () => {
+    expect(baseCharacterSlug("Iron Vale")).toBe("iron-vale");
+    expect(baseCharacterSlug("__A__")).toBe("iron-a");
+    expect(baseCharacterSlug("  ")).toBe("iron-path");
+  });
+
+  it("creates unambiguous single-use codes and normalizes their display form", () => {
+    const codes = Array.from({ length: 50 }, createLinkCode);
+    expect(new Set(codes).size).toBe(codes.length);
+    expect(codes.every((code) => /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/.test(code))).toBe(true);
+    expect(normalizeLinkCode("ab2c-def3")).toBe("AB2CDEF3");
+  });
+
   it("prefers a valid URL, then remembered character, then the oldest", () => {
     expect(chooseCharacter(characters, "second", "first")?.id).toBe("two");
     expect(chooseCharacter(characters, "foreign", "second")?.id).toBe("two");

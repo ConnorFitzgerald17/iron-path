@@ -4,6 +4,11 @@ import type { CharacterSummary, RuneScapeAccountType } from "@/lib/types";
 export const ACTIVE_CHARACTER_COOKIE = "iron-path-character";
 export const MAX_CHARACTERS = 5;
 
+export function baseCharacterSlug(name: string) {
+  const value = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 28);
+  return value.length >= 3 ? value : `iron-${value || "path"}`;
+}
+
 export type CharacterSummaryRow = {
   id: string;
   name: string;

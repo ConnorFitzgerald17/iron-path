@@ -1,4 +1,5 @@
 import type { CharacterProfile, CharacterSyncState, Goal, OwnedItem, QuestState } from "./types";
+import { resolvedCombatLevel } from "./character-display";
 
 function key(value: string) {
   return value.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
@@ -38,7 +39,7 @@ export function mergeCharacterSyncState(profile: CharacterProfile, state: Charac
     name: state.character.name,
     slug: state.character.slug,
     accountType: state.character.accountType,
-    combatLevel: state.character.combatLevel,
+    combatLevel: resolvedCombatLevel(state.character.combatLevel, state.skills),
     totalLevel: state.character.totalLevel,
     visibility: state.character.visibility,
     lastSyncedAt: state.character.lastSyncedAt,

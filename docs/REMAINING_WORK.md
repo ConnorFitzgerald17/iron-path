@@ -44,7 +44,7 @@ The manual web MVP is complete. Authenticated players can manage multiple RuneSc
 
 The implemented flow supports:
 
-1. Sign in, create multiple characters, and switch between isolated journals.
+1. Sign in, verify multiple characters through RuneLite, and switch between isolated journals.
 2. Add a Wiki quest and view levels, subquests, and required items.
 3. Manually update those requirements and keep the changes after reload.
 4. Create an item grind, set baseline KC, record drops, and choose visible trophies.

@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export interface DeviceIdentity { deviceId: string; characterId: string; }
@@ -10,6 +10,15 @@ export function hashToken(token: string) {
 
 export function createDeviceToken() {
   return `ipd_${randomBytes(32).toString("base64url")}`;
+}
+
+export function createLinkCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 8 }, () => alphabet[randomInt(alphabet.length)]).join("");
+}
+
+export function normalizeLinkCode(code: string) {
+  return code.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
 export function shouldRefreshDeviceLastSeen(lastSeenAt: string | null, now = Date.now()) {

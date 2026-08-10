@@ -15,7 +15,7 @@ Linked RuneLite clients refresh dashboard state every 15 seconds while automatic
 
 Each web account can hold up to five journals. Link every RuneScape character once from its selected journal; RuneLite then keeps the RSN, exact account mode, combat level, total level, skills, quests, items, loot, and Collection Log isolated by RuneScape profile.
 
-To sync the Collection Log, open it in RuneLite and use its native **Search** button once. Iron Path captures the authoritative item-count transmission, queues each section against the active RuneScape profile, and exposes only sections or individual obtained items selected in Showcase settings.
+To sync the Collection Log, open it in RuneLite and use its native **Search** button once. Iron Path captures the authoritative item-count transmission, queues each section against the active RuneScape profile, and exposes only skills, sections, or individual obtained items selected in Showcase settings. Skill stats remain private unless the player enables all stats or chooses individual skills.
 
 ## Supabase
 

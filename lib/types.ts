@@ -9,6 +9,11 @@ export interface SkillSnapshot {
   xp: number;
 }
 
+export interface SkillShowcaseSelection {
+  all: boolean;
+  skills: string[];
+}
+
 export interface OwnedItem {
   itemId: number;
   name: string;
@@ -164,8 +169,10 @@ export interface CharacterProfile {
   visibility: "private" | "public";
   lastSyncedAt?: string;
   skills: SkillSnapshot[];
+  skillShowcase: SkillShowcaseSelection;
   items: OwnedItem[];
   goals: Goal[];
+  collectionLogTotals: { obtainedCount: number; totalCount: number };
   collectionLog: CollectionLogSection[];
 }
 

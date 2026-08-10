@@ -29,9 +29,12 @@ SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 CRON_SECRET=generate-a-long-random-secret
 IRON_PATH_API_ORIGIN=http://localhost:3000
 IRON_PATH_WIKI_USER_AGENT=IronPath/0.1 (your-contact-url-or-email)
+FF_SIGNUPS_ENABLED=false
 ```
 
 Never expose the service-role key to browser code or commit `.env.local`. Restart the dev server after changing environment variables.
+
+Keep `FF_SIGNUPS_ENABLED=false` while the RuneLite plugin is awaiting approval. Existing users can still sign in and use verified journals, but the app login flow will not create new auth users and first-character enrollment is blocked. Set it to `true` and restart or redeploy when registrations should open.
 
 ## Import the Wiki catalog
 
@@ -45,13 +48,13 @@ curl -X POST \
 
 A successful import creates a completed `catalog_sync_runs` row and populates items, quests, monsters, and drops. The first import can take several minutes.
 
-## Test the manual MVP
+## Test the web MVP
 
 1. Sign in with email.
-2. Create your first character with its RuneScape name and iron type.
-3. Select **New goal**.
-4. Search a quest, or search a monster and select a target drop.
-5. Use the `−` and `+` controls to update levels, item quantities, KC, and drops.
+2. Copy the verification code, paste it into the Iron Path RuneLite plugin, and connect while logged into the character.
+3. Wait for the first snapshot to create the verified journal.
+4. Select **New goal**.
+5. Search a quest, or search a monster and select a target drop.
 6. Open **Showcase**, select visible goals/drops, publish, and copy the public link.
 7. Reload the page to confirm that the state persists.
 
@@ -71,7 +74,7 @@ To use a Jagex Account, launch RuneLite through the Jagex Launcher and use the p
 In the Iron Path plugin settings:
 
 1. Set **API origin** to `http://localhost:3000`.
-2. In the web journal, select **Plugin** to generate a ten-minute code.
+2. During first-time setup, copy the ten-minute verification code shown by the web app. For an existing journal, select **Plugin** to generate a relink code.
 3. Paste the code into the plugin and connect the currently logged-in character.
 4. Run a manual sync, then reload the web journal.
 
