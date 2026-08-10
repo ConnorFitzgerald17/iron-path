@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.IRON_PATH_API_ORIGIN ?? "http://localhost:3000"),
+  metadataBase: siteUrl(process.env.IRON_PATH_API_ORIGIN),
   title: "Iron Path — Old School progress, properly tracked",
   description: "Quest readiness, item grinds, banked XP, and a trophy case for Old School RuneScape iron accounts."
 };
