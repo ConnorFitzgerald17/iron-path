@@ -13,11 +13,12 @@ describe("quest blocker recommendations", () => {
     expect(rows.some((row) => row.kind === "item" && row.itemName === "Goutweed")).toBe(true);
   });
 
-  it("creates an XP-derived skill goal with quest provenance", () => {
+  it("creates a level grind with quest provenance and no banked XP by default", () => {
     const recommendation = questRecommendations(demoProfile).find((row) => row.kind === "skill")!;
     const goal = skillGoalFromRecommendation(recommendation, demoProfile);
     expect(goal.kind).toBe("skill");
     expect(goal.targetXp).toBeGreaterThan(goal.currentXp);
     expect(goal.sourceGoals[0].goalId).toBe(recommendation.sourceGoalId);
+    expect(goal.bankedPlan).toBeUndefined();
   });
 });

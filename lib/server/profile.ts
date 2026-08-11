@@ -11,7 +11,6 @@ import type {
   SkillGoal,
 } from "@/lib/types";
 import { createAdminClient } from "@/lib/supabase/server";
-import { defaultMethodIds } from "@/lib/xp-catalog";
 import { xpForLevel } from "@/lib/calculations";
 import { resolvedCombatLevel } from "@/lib/character-display";
 
@@ -152,9 +151,7 @@ function hydrateGoal(
       currentXp,
       targetXp,
       status: currentXp >= targetXp ? "complete" : "active",
-      bankedPlan: goal.bankedPlan ?? (defaultMethodIds(goal.skill, currentLevel).length ? {
-        selectedMethodIds: defaultMethodIds(goal.skill, currentLevel), includeOutputs: true, respectLevels: true, showSecondaries: true,
-      } : undefined),
+      bankedPlan: goal.bankedPlan,
       sourceGoals: goal.sourceGoals ?? [],
     } satisfies SkillGoal;
   }

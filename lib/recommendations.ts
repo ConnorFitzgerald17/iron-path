@@ -1,6 +1,5 @@
 import { ownedQuantity, xpForLevel } from "./calculations";
 import type { CharacterProfile, QuestGoal, SkillGoal } from "./types";
-import { defaultMethodIds } from "./xp-catalog";
 
 export type RecommendationKind = "skill" | "quest" | "item";
 
@@ -71,7 +70,6 @@ export function skillGoalFromRecommendation(recommendation: QuestRecommendation,
   const skill = recommendation.skill!;
   const targetLevel = recommendation.targetLevel!;
   const current = profile.skills.find((row) => row.skill.toLowerCase() === skill.toLowerCase());
-  const methodIds = defaultMethodIds(skill, current?.level ?? 1);
   return {
     id: `skill-${skill.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${targetLevel}-${Date.now()}`,
     kind: "skill",
@@ -82,7 +80,6 @@ export function skillGoalFromRecommendation(recommendation: QuestRecommendation,
     currentLevel: current?.level ?? 1,
     currentXp: current?.xp ?? 0,
     sourceGoals: [{ goalId: recommendation.sourceGoalId, title: recommendation.sourceGoalTitle, requiredLevel: targetLevel }],
-    bankedPlan: methodIds.length ? { selectedMethodIds: methodIds, includeOutputs: true, respectLevels: true, showSecondaries: true } : undefined,
     public: false,
     status: (current?.xp ?? 0) >= xpForLevel(targetLevel) ? "complete" : "active",
   };

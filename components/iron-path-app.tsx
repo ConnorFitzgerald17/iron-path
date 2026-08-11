@@ -15,7 +15,7 @@ import { skillIcon } from "@/lib/icons";
 import { createClient as createBrowserClient } from "@/lib/supabase/browser";
 import type { BankedXpGoal, CharacterProfile, CharacterSummary, CharacterSyncState, CollectionLogDisplayMode, Goal, GrindGoal, QuestGoal, QuestState, SkillGoal } from "@/lib/types";
 import { mergeCharacterSyncState } from "@/lib/sync-state";
-import { BANKABLE_SKILLS, bankedMethodsForSkill, defaultMethodIds, methodsForSkill } from "@/lib/xp-catalog";
+import { bankedMethodsForSkill, defaultMethodIds, methodsForSkill } from "@/lib/xp-catalog";
 import { questRecommendations, skillGoalFromRecommendation, type QuestRecommendation } from "@/lib/recommendations";
 import { skillShowcaseKey, sortedSkills, visibleShowcaseSkills } from "@/lib/skill-showcase";
 import { ItemImage } from "./item-image";
@@ -164,7 +164,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
   const matchingGoals = profile.goals.filter((goal) => goal.title.toLowerCase().includes(query.toLowerCase()));
   const activeGoals = matchingGoals.filter((goal) => goal.status !== "complete");
   const completedGoals = matchingGoals.filter((goal) => goal.status === "complete");
-  const recommendations = questRecommendations(profile).slice(0, 5);
+  const recommendations = questRecommendations(profile).filter((recommendation) => recommendation.kind === "skill").slice(0, 5);
 
   const persistGoal = (goal: Goal) => {
     if (!connected) return;
@@ -508,10 +508,10 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
                 {recommendations.length > 0 && <RecommendationPanel recommendations={recommendations} onFollow={(recommendation) => void followRecommendation(recommendation)} />}
                 <div className="goal-card-list">
                   {activeGoals.map((goal, index) => <GoalCard key={goal.id} goal={goal} profile={profile} active={goal.id === selectedId} index={index} onSelect={() => setSelectedId(goal.id)} />)}
-                  {!matchingGoals.length && <div className="empty-journal"><BookOpen size={25} /><strong>{profile.goals.length ? "No paths match" : "Your journal is empty"}</strong><small>{profile.goals.length ? "Try another search." : "Add a quest, grind, or banked XP goal."}</small></div>}
+                  {!matchingGoals.length && <div className="empty-journal"><BookOpen size={25} /><strong>{profile.goals.length ? "No paths match" : "Your journal is empty"}</strong><small>{profile.goals.length ? "Try another search." : "Add a quest, item grind, or level grind."}</small></div>}
                   {!activeGoals.length && completedGoals.length > 0 && !query && <div className="empty-journal empty-journal--compact"><Check size={22} /><strong>All paths complete</strong><small>Add a new goal when you are ready.</small></div>}
                 </div>
-                <button className="add-goal-card" onClick={() => setAddOpen(true)}><Plus size={19} /><span><strong>Mark a new path</strong><small>Quest, grind, or banked XP</small></span></button>
+                <button className="add-goal-card" onClick={() => setAddOpen(true)}><Plus size={19} /><span><strong>Mark a new path</strong><small>Quest, item grind, or level grind</small></span></button>
                 {completedGoals.length > 0 && <>
                   <div className="journal-section-heading"><span>COMPLETED</span><span>{completedGoals.length}</span></div>
                   <div className="goal-card-list goal-card-list--completed">
@@ -548,7 +548,7 @@ function GoalCard({ goal, profile, active, index, onSelect }: { goal: Goal; prof
     <button className={`goal-card ${active ? "goal-card--active" : ""} ${goal.status === "complete" ? "goal-card--complete" : ""}`} style={{ animationDelay: `${index * 70}ms` }} onClick={onSelect}>
       <span className={`goal-kind goal-kind--${goal.kind}`}>{goalIcon(goal)}</span>
       <span className="goal-card-main">
-        <span className="goal-card-top"><em>{goal.status === "complete" ? "COMPLETED" : goal.kind === "banked_xp" ? "BANKED XP" : goal.kind.toUpperCase()}</em>{goal.status === "complete" ? <Check size={13} /> : goal.public ? <Eye size={13} /> : <LockKeyhole size={12} />}</span>
+        <span className="goal-card-top"><em>{goal.status === "complete" ? "COMPLETED" : goal.kind === "banked_xp" ? "BANKED XP" : goal.kind === "skill" ? "LEVEL GRIND" : goal.kind.toUpperCase()}</em>{goal.status === "complete" ? <Check size={13} /> : goal.public ? <Eye size={13} /> : <LockKeyhole size={12} />}</span>
         <strong>{goal.title}</strong>
         <span className="progress-track"><i style={{ width: `${meta.percent}%` }} /></span>
         <small>{meta.label}<b>{meta.percent}%</b></small>
@@ -559,7 +559,7 @@ function GoalCard({ goal, profile, active, index, onSelect }: { goal: Goal; prof
 
 function RecommendationPanel({ recommendations, onFollow }: { recommendations: QuestRecommendation[]; onFollow: (recommendation: QuestRecommendation) => void }) {
   return <section className="recommendation-panel">
-    <header><span><Sparkles size={14} /> NEXT STEPS</span><small>Based on active quest blockers</small></header>
+    <header><span><Sparkles size={14} /> NEXT STEPS</span><small>Level grinds from active quest blockers</small></header>
     <div>{recommendations.map((recommendation) => <button key={recommendation.id} onClick={() => onFollow(recommendation)}>
       <span className={`goal-kind goal-kind--${recommendation.kind === "skill" ? "skill" : recommendation.kind === "quest" ? "quest" : "grind"}`}>{recommendation.kind === "quest" ? <BookOpen size={13} /> : recommendation.kind === "item" ? <Gem size={13} /> : <Zap size={13} />}</span>
       <span><strong>{recommendation.title}</strong><small>{recommendation.detail}</small></span>
@@ -764,6 +764,7 @@ function SkillDetail({ goal, profile, onUpdate, onDelete }: { goal: SkillGoal; p
   const progress = skillProgress(goal);
   const plan = goal.bankedPlan ? calculateBankedPlan(goal.skill, goal.currentLevel, goal.currentXp, goal.targetLevel, goal.bankedPlan, profile.items, profile.accountType) : null;
   const methods = bankedMethodsForSkill(goal.skill);
+  const canAddBankedXp = methods.length > 0;
   const toggleMethod = (methodId: string) => {
     if (!goal.bankedPlan) return;
     const method = methods.find((row) => row.id === methodId)!;
@@ -773,12 +774,21 @@ function SkillDetail({ goal, profile, onUpdate, onDelete }: { goal: SkillGoal; p
     ];
     onUpdate({ ...goal, bankedPlan: { ...goal.bankedPlan, selectedMethodIds } });
   };
+  const toggleBankedXp = () => onUpdate({
+    ...goal,
+    bankedPlan: goal.bankedPlan ? undefined : {
+      selectedMethodIds: defaultMethodIds(goal.skill, goal.currentLevel),
+      includeOutputs: true,
+      respectLevels: true,
+      showSecondaries: true,
+    },
+  });
   return <div className="detail-page">
-    <DetailHeader eyebrow="SKILL GRIND" title={goal.title} subtitle={`${fullNumber(progress.remaining)} XP remains before ${goal.sourceGoals.map((source) => source.title).join(", ") || "your target"}.`} icon={<ItemImage src={skillIcon(goal.skill)} alt={goal.skill} size={48} />} publicValue={goal.public} status={goal.status} derivedStatus onPublic={() => onUpdate({ ...goal, public: !goal.public })} onStatus={() => undefined} onDelete={onDelete} />
+    <DetailHeader eyebrow="LEVEL GRIND" title={goal.title} subtitle={`${fullNumber(progress.remaining)} XP remains before ${goal.sourceGoals.map((source) => source.title).join(", ") || "your target"}.`} icon={<ItemImage src={skillIcon(goal.skill)} alt={goal.skill} size={48} />} publicValue={goal.public} status={goal.status} derivedStatus onPublic={() => onUpdate({ ...goal, public: !goal.public })} onStatus={() => undefined} onDelete={onDelete} />
     <div className="xp-ledger">
       <div><small>CURRENT</small><strong>Level {goal.currentLevel}</strong><span>{fullNumber(goal.currentXp)} XP</span></div><ChevronRight size={21} />
       <div className="accent"><small>TARGET</small><strong>Level {goal.targetLevel}</strong><span>{fullNumber(goal.targetXp)} XP</span></div><ChevronRight size={21} />
-      <div><small>AFTER BANK</small><strong>{plan ? `Level ${plan.projectedLevel}` : "Not bankable"}</strong><span>{plan ? `${fullNumber(plan.remaining)} XP short` : `${fullNumber(progress.remaining)} XP short`}</span></div>
+      <div><small>{plan ? "AFTER BANK" : "REMAINING"}</small><strong>{plan ? `Level ${plan.projectedLevel}` : `${fullNumber(progress.remaining)} XP`}</strong><span>{plan ? `${fullNumber(plan.remaining)} XP short` : "to reach your target"}</span></div>
     </div>
     <div className="xp-progress"><span><i style={{ width: `${progress.percent}%` }} /></span><small>{progress.percent}% of target XP reached</small></div>
     <Section title="Target settings" count="SYNCED">
@@ -792,7 +802,13 @@ function SkillDetail({ goal, profile, onUpdate, onDelete }: { goal: SkillGoal; p
         }} /></label>
       </div>
     </Section>
-    <Section title="Quest links" count={`${goal.sourceGoals.length}`}><div className="source-goal-list">{goal.sourceGoals.map((source) => <span key={source.goalId}><BookOpen size={13} /><strong>{source.title}</strong><small>Needs {source.requiredLevel} {goal.skill}</small></span>)}</div></Section>
+    {goal.sourceGoals.length > 0 && <Section title="Quest links" count={`${goal.sourceGoals.length}`}><div className="source-goal-list">{goal.sourceGoals.map((source) => <span key={source.goalId}><BookOpen size={13} /><strong>{source.title}</strong><small>Needs {source.requiredLevel} {goal.skill}</small></span>)}</div></Section>}
+    <Section title="Banked XP" count={goal.bankedPlan ? "BETA · ON" : "BETA"}>
+      <div className="beta-feature">
+        <span><strong>Banked XP is in beta</strong><small>{canAddBankedXp ? "Optionally estimate how far your current bank can take this level grind. Methods and supply coverage are still being expanded." : `Banked XP support is not available for ${goal.skill} yet.`}</small></span>
+        <button disabled={!canAddBankedXp} onClick={toggleBankedXp}>{goal.bankedPlan ? "Remove banked XP" : "Add banked XP"}</button>
+      </div>
+    </Section>
     {goal.bankedPlan && <>
       <Section title="Banked plan" count={`${goal.bankedPlan.selectedMethodIds.length} selected`}><div className="activity-list">{methods.map((method) => {
         const active = goal.bankedPlan!.selectedMethodIds.includes(method.id);
@@ -814,18 +830,24 @@ function Toggle({ label, detail, value, onChange }: { label: string; detail: str
 }
 
 function AddGoalDialog({ onClose, onAdd, profile, connected }: { onClose: () => void; onAdd: (goal: Goal) => Promise<void>; profile: CharacterProfile; connected: boolean }) {
-  const [kind, setKind] = useState<Goal["kind"]>("quest");
+  const syncedSkills = sortedSkills(profile.skills).filter((row) => !/^overall|quest points?$/i.test(row.skill));
+  const trainableSkills = syncedSkills.filter((row) => row.level < 99);
+  const levelSkills = trainableSkills.length ? trainableSkills : syncedSkills;
+  const initialSkill = levelSkills[0] ?? { skill: "Attack", level: 1, xp: 0 };
+  const [kind, setKind] = useState<"quest" | "grind" | "skill">("quest");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Goal[]>(connected ? [] : quickAddGoals);
   const [grindSearchBy, setGrindSearchBy] = useState<"item" | "monster">("item");
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState("");
-  const [skill, setSkill] = useState<(typeof BANKABLE_SKILLS)[number]>("Herblore");
-  const [targetLevel, setTargetLevel] = useState(80);
-  const currentSkill = profile.skills.find((row) => row.skill === skill);
+  const [skill, setSkill] = useState(initialSkill.skill);
+  const [targetLevel, setTargetLevel] = useState(Math.min(99, initialSkill.level + 1));
+  const [includeBankedXp, setIncludeBankedXp] = useState(false);
+  const currentSkill = profile.skills.find((row) => row.skill.toLowerCase() === skill.toLowerCase());
+  const bankedMethods = bankedMethodsForSkill(skill);
 
   useEffect(() => {
-    if (!connected || kind === "banked_xp" || query.trim().length < 2) return;
+    if (!connected || kind === "skill" || query.trim().length < 2) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
@@ -850,26 +872,28 @@ function AddGoalDialog({ onClose, onAdd, profile, connected }: { onClose: () => 
     setAdding("");
   };
 
-  const addXpGoal = async () => {
-    const activities = methodsForSkill(skill).map((method) => ({
-      ...method,
-      quantity: ownedQuantity(profile.items, method.inputItemId),
-      secondaryQuantity: method.secondaryQuantity ? method.secondaryQuantity * ownedQuantity(profile.items, method.inputItemId) : undefined,
-    }));
+  const addLevelGoal = async () => {
+    const currentLevel = currentSkill?.level ?? 1;
+    const currentXp = currentSkill?.xp ?? 0;
+    const targetXp = xpForLevel(targetLevel);
     await add({
-      id: `catalog-xp-${skill.toLowerCase()}-${targetLevel}-${Date.now()}`,
-      kind: "banked_xp",
-      title: `Bank ${targetLevel} ${skill}`,
+      id: `level-${skill.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${targetLevel}-${Date.now()}`,
+      kind: "skill",
+      title: `Train ${targetLevel} ${skill}`,
       skill,
       targetLevel,
-      currentLevel: currentSkill?.level ?? 1,
-      currentXp: currentSkill?.xp ?? 0,
+      targetXp,
+      currentLevel,
+      currentXp,
+      sourceGoals: [],
+      bankedPlan: includeBankedXp && bankedMethods.length ? {
+        selectedMethodIds: defaultMethodIds(skill, currentLevel),
+        includeOutputs: true,
+        respectLevels: true,
+        showSecondaries: true,
+      } : undefined,
       public: false,
-      includeOutputs: true,
-      respectLevels: true,
-      showSecondaries: true,
-      activities,
-      selectedMethodIds: defaultMethodIds(skill, currentSkill?.level ?? 1),
+      status: currentXp >= targetXp ? "complete" : "active",
     });
   };
 
@@ -878,15 +902,15 @@ function AddGoalDialog({ onClose, onAdd, profile, connected }: { onClose: () => 
       <button className="modal-backdrop" onClick={onClose} aria-label="Close" />
       <div className="modal-panel">
         <header><div><small>ADD TO YOUR JOURNAL</small><h2 id="add-title">Choose the next path</h2></div><button className="icon-button" onClick={onClose}><X size={19} /></button></header>
-        <div className="goal-type-tabs"><button className={kind === "quest" ? "active" : ""} onClick={() => setKind("quest")}><BookOpen size={14} /> Quest</button><button className={kind === "grind" ? "active" : ""} onClick={() => setKind("grind")}><Target size={14} /> Item grind</button><button className={kind === "banked_xp" ? "active" : ""} onClick={() => setKind("banked_xp")}><Zap size={14} /> Banked XP</button></div>
+        <div className="goal-type-tabs"><button className={kind === "quest" ? "active" : ""} onClick={() => setKind("quest")}><BookOpen size={14} /> Quest</button><button className={kind === "grind" ? "active" : ""} onClick={() => setKind("grind")}><Target size={14} /> Item grind</button><button className={kind === "skill" ? "active" : ""} onClick={() => setKind("skill")}><Zap size={14} /> Level grind</button></div>
         {kind === "grind" && <div className="grind-search-mode"><span>CHOOSE YOUR ROUTE</span><div><button className={grindSearchBy === "item" ? "active" : ""} onClick={() => { setGrindSearchBy("item"); setQuery(""); }}><span className="goal-kind goal-kind--grind"><Gem size={14} /></span><span><strong>Start with an item</strong><small>Then choose its monster source</small></span></button><button className={grindSearchBy === "monster" ? "active" : ""} onClick={() => { setGrindSearchBy("monster"); setQuery(""); }}><span className="goal-kind goal-kind--grind"><Target size={14} /></span><span><strong>Start with a monster</strong><small>Then choose its target drop</small></span></button></div></div>}
-        {kind !== "banked_xp" && <label className="modal-search"><Search size={16} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder={kind === "quest" ? "Search 217 Wiki quests" : grindSearchBy === "item" ? "Search a target item, e.g. dragon warhammer" : "Search a monster, e.g. Tormented Demon"} />{loading && <LoaderCircle className="spin" size={15} />}</label>}
-        {kind === "banked_xp" ? (
+        {kind !== "skill" && <label className="modal-search"><Search size={16} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder={kind === "quest" ? "Search 217 Wiki quests" : grindSearchBy === "item" ? "Search a target item, e.g. dragon warhammer" : "Search a monster, e.g. Tormented Demon"} />{loading && <LoaderCircle className="spin" size={15} />}</label>}
+        {kind === "skill" ? (
           <div className="xp-goal-builder">
-            <label><span>Skill</span><select value={skill} onChange={(event) => setSkill(event.target.value as typeof skill)}>{BANKABLE_SKILLS.map((value) => <option key={value}>{value}</option>)}</select></label>
-            <label><span>Target level</span><input type="number" min={2} max={99} value={targetLevel} onChange={(event) => setTargetLevel(Math.min(99, Math.max(2, Number(event.target.value))))} /></label>
-            <div><small>METHODS INCLUDED</small>{methodsForSkill(skill).map((method) => <span key={method.id}><ItemImage src={method.inputIcon} alt={method.inputName} size={28} /><b>{method.inputName}</b><em>{method.xpEach} xp</em></span>)}</div>
-            <button className="primary-action" disabled={Boolean(adding)} onClick={() => void addXpGoal()}>{adding ? <LoaderCircle className="spin" size={15} /> : <Plus size={15} />} Add banked XP goal</button>
+            <label><span>Skill</span><select value={skill} onChange={(event) => { const next = levelSkills.find((row) => row.skill === event.target.value); setSkill(event.target.value); setTargetLevel(Math.min(99, (next?.level ?? 1) + 1)); setIncludeBankedXp(false); }}>{levelSkills.map((value) => <option key={value.skill} value={value.skill}>{value.skill} · Level {value.level}</option>)}</select></label>
+            <label><span>Target level</span><input type="number" min={Math.min(99, (currentSkill?.level ?? 1) + 1)} max={99} value={targetLevel} onChange={(event) => setTargetLevel(Math.min(99, Math.max(Math.min(99, (currentSkill?.level ?? 1) + 1), Number(event.target.value))))} /></label>
+            <div className="beta-choice"><small>OPTIONAL ADD-ON · BETA</small><strong>Banked XP is in beta</strong><p>{bankedMethods.length ? "Estimate how far the supplies in your bank can take this grind. Method and supply coverage is still being expanded." : `Banked XP support is not available for ${skill} yet.`}</p><button type="button" aria-pressed={includeBankedXp} disabled={!bankedMethods.length} onClick={() => setIncludeBankedXp((value) => !value)}>{includeBankedXp ? <Check size={13} /> : <Plus size={13} />}{includeBankedXp ? "Banked XP added" : "Add banked XP"}</button></div>
+            <button className="primary-action" disabled={Boolean(adding)} onClick={() => void addLevelGoal()}>{adding ? <LoaderCircle className="spin" size={15} /> : <Plus size={15} />} Add level grind</button>
           </div>
         ) : kind === "grind" ? <GrindCatalogResults results={displayedResults.filter((goal): goal is GrindGoal => goal.kind === "grind")} searchBy={grindSearchBy} adding={adding} onAdd={(goal) => void add(goal)} /> : <div className="quick-add-grid catalog-results">
           {displayedResults.map((goal) => (
@@ -897,9 +921,9 @@ function AddGoalDialog({ onClose, onAdd, profile, connected }: { onClose: () => 
             </button>
           ))}
         </div>}
-        {kind !== "banked_xp" && !loading && connected && query.length >= 2 && !displayedResults.length && <div className="catalog-empty"><CircleHelp size={19} /><strong>No catalog matches</strong><small>Try the exact Wiki name or a shorter search.</small></div>}
-        {kind !== "banked_xp" && !connected && displayedResults.length === 0 && <div className="catalog-empty"><CircleHelp size={19} /><strong>No bundled example</strong><small>Connect Supabase to search the full Wiki catalog.</small></div>}
-        <p className="modal-hint"><CircleHelp size={15} /> {connected ? "Requirements, NPC IDs, drop rates, and icons come from your imported OSRS Wiki catalog." : "Demo mode uses bundled examples. Configure Supabase for the full Wiki catalog."}</p>
+        {kind !== "skill" && !loading && connected && query.length >= 2 && !displayedResults.length && <div className="catalog-empty"><CircleHelp size={19} /><strong>No catalog matches</strong><small>Try the exact Wiki name or a shorter search.</small></div>}
+        {kind !== "skill" && !connected && displayedResults.length === 0 && <div className="catalog-empty"><CircleHelp size={19} /><strong>No bundled example</strong><small>Connect Supabase to search the full Wiki catalog.</small></div>}
+        <p className="modal-hint"><CircleHelp size={15} /> {kind === "skill" ? "Level progress follows your synced RuneLite XP. Banked XP is optional and experimental." : connected ? "Requirements, NPC IDs, drop rates, and icons come from your imported OSRS Wiki catalog." : "Demo mode uses bundled examples. Configure Supabase for the full Wiki catalog."}</p>
       </div>
     </div>
   );
