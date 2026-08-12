@@ -22,11 +22,18 @@ const command = {
   ],
 };
 
-const response = await fetch(`https://discord.com/api/v10/applications/${applicationId}/commands`, {
-  method: "POST",
-  headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
-  body: JSON.stringify(command),
+async function register() {
+  const response = await fetch(`https://discord.com/api/v10/applications/${applicationId}/commands`, {
+    method: "POST",
+    headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(command),
+  });
+  if (!response.ok) throw new Error(`Discord command registration failed (${response.status}): ${await response.text()}`);
+  const registered = await response.json() as { id: string; name: string };
+  console.log(`Registered /${registered.name} (${registered.id}).`);
+}
+
+register().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
 });
-if (!response.ok) throw new Error(`Discord command registration failed (${response.status}): ${await response.text()}`);
-const registered = await response.json() as { id: string; name: string };
-console.log(`Registered /${registered.name} (${registered.id}).`);
