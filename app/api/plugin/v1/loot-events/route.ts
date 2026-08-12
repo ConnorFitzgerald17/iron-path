@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticateDevice } from "@/lib/server/plugin-auth";
 import { badRequest, unauthorized } from "@/lib/server/responses";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { dispatchDiscordDeliveries } from "@/lib/server/discord-dispatch";
 
 const schema = z.object({ events: z.array(z.object({
   eventId: z.string().uuid(), occurredAt: z.string().datetime(), npcId: z.number().int(), npcName: z.string().max(100),
@@ -21,5 +22,12 @@ export async function POST(request: Request) {
   }));
   const { error } = await createAdminClient().from("loot_events").upsert(rows, { onConflict: "device_id,event_id", ignoreDuplicates: true });
   if (error) return NextResponse.json({ error: "loot_ingest_failed" }, { status: 500 });
+  after(async () => {
+    try {
+      await dispatchDiscordDeliveries();
+    } catch (error) {
+      console.error("Discord achievement dispatch failed after loot ingest", error);
+    }
+  });
   return NextResponse.json({ accepted: rows.length });
 }

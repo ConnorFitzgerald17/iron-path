@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { collectionLogSectionDetail, type Achievement, type AchievementType } from "@/lib/achievements";
+import { collectionLogAttributionDetail, type Achievement, type AchievementType } from "@/lib/achievements";
 import { runeLiteItemIcon } from "@/lib/icons";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -55,7 +55,9 @@ async function hydrateAchievement(row: AchievementRow): Promise<Achievement> {
     type: row.type,
     occurredAt: row.occurred_at,
     title,
-    detail: row.type === "collection_unlock" ? collectionLogSectionDetail(collectionSectionName) : `Completed ${kind} path`,
+    detail: row.type === "collection_unlock"
+      ? collectionLogAttributionDetail(collectionSectionName, typeof row.payload.sourceName === "string" ? row.payload.sourceName : undefined)
+      : `Completed ${kind} path`,
     itemId,
     itemIcon: itemId ? runeLiteItemIcon(itemId) : undefined,
     collectionObtained,

@@ -30,6 +30,7 @@ export function collectionLogProgress(obtained: number, total: number) {
   return `${obtained.toLocaleString("en-GB")} / ${total.toLocaleString("en-GB")} unlocked (${percentage.toFixed(1)}%)`;
 }
 
-export function collectionLogSectionDetail(sectionName?: string) {
+export function collectionLogAttributionDetail(sectionName?: string, lootSourceName?: string) {
+  if (lootSourceName) return `Loot source: ${lootSourceName}`;
   return sectionName ? `Collection Log section: ${sectionName}` : "Added to the Collection Log";
 }
