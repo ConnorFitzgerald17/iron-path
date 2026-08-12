@@ -19,6 +19,8 @@ const achievement: Achievement = {
   detail: "Unlocked in Abyssal Sire",
   itemId: 4151,
   itemIcon: "https://static.runelite.net/cache/item/icon/4151.png",
+  collectionObtained: 623,
+  collectionTotal: 1921,
 };
 
 describe("Discord integration", () => {
@@ -50,7 +52,8 @@ describe("Discord integration", () => {
     expect(message.allowed_mentions).toEqual({ parse: [] });
     expect(message.embeds[0].url).toBe(`https://ironpath.example/achievement/${achievement.publicId}`);
     expect(message.embeds[0].description).toContain("Ferrous");
-    expect(message.embeds[0].fields.map((field) => field.name)).toEqual(["Account", "Combat", "Total level"]);
+    expect(message.embeds[0].fields.map((field) => field.name)).toEqual(["Collection Log", "Account", "Combat", "Total level"]);
+    expect(message.embeds[0].fields[0].value).toBe("623 / 1,921 unlocked (32.4%)");
     expect(message.embeds[0].thumbnail).toEqual({ url: achievement.itemIcon });
     expect(message.embeds[0]).not.toHaveProperty("image");
     expect(message.components[0].components.map((button) => button.label)).toEqual(["View achievement", "View Iron Path"]);

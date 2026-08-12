@@ -1,6 +1,6 @@
 import { createHash, randomBytes, verify } from "node:crypto";
 import type { Achievement } from "@/lib/achievements";
-import { achievementLabel } from "@/lib/achievements";
+import { achievementLabel, collectionLogProgress } from "@/lib/achievements";
 import { siteUrl } from "@/lib/site-url";
 
 const ED25519_SPKI_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
@@ -65,6 +65,9 @@ export function achievementDiscordMessage(achievement: Achievement) {
       url: achievementUrl,
       color: collectionUnlock ? 0xd5ad55 : 0x77966d,
       fields: [
+        ...(collectionUnlock && achievement.collectionObtained !== undefined && achievement.collectionTotal !== undefined
+          ? [{ name: "Collection Log", value: collectionLogProgress(achievement.collectionObtained, achievement.collectionTotal), inline: false }]
+          : []),
         { name: "Account", value: achievement.accountType, inline: true },
         { name: "Combat", value: String(achievement.combatLevel), inline: true },
         { name: "Total level", value: achievement.totalLevel.toLocaleString("en-GB"), inline: true },

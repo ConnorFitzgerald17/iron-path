@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Check, Eye, Gem, Shield, Trophy } from "lucide-react";
-import { achievementLabel } from "@/lib/achievements";
+import { achievementLabel, collectionLogProgress } from "@/lib/achievements";
 import { loadPublicAchievement } from "@/lib/server/achievements";
 import { ItemImage } from "@/components/item-image";
 
@@ -35,6 +35,8 @@ export default async function AchievementPage({ params }: { params: Promise<{ pu
       {achievement.itemIcon && <ItemImage src={achievement.itemIcon} alt={achievement.title} size={96} />}
       <h1>{achievement.title}</h1>
       <p>{achievement.detail}</p>
+      {achievement.collectionObtained !== undefined && achievement.collectionTotal !== undefined &&
+        <p><strong>Collection Log:</strong> {collectionLogProgress(achievement.collectionObtained, achievement.collectionTotal)}</p>}
       <div className="achievement-owner">
         <span>{achievement.characterName.slice(0, 2).toUpperCase()}</span>
         <div><small>EARNED BY</small><strong>{achievement.characterName}</strong><p>{achievement.accountType} · Combat {achievement.combatLevel} · Total {achievement.totalLevel}</p></div>

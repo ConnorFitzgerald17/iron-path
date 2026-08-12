@@ -23,9 +23,19 @@ type AchievementRow = {
 async function hydrateAchievement(row: AchievementRow): Promise<Achievement> {
   const itemId = row.type === "collection_unlock" ? Number(row.payload.itemId) : undefined;
   let itemName: string | undefined;
+  let collectionObtained: number | undefined;
+  let collectionTotal: number | undefined;
   if (itemId) {
-    const { data } = await createAdminClient().from("catalog_items").select("name").eq("item_id", itemId).maybeSingle();
-    itemName = data?.name ? String(data.name) : `Item ${itemId}`;
+    const admin = createAdminClient();
+    const [itemResult, sectionsResult] = await Promise.all([
+      admin.from("catalog_items").select("name").eq("item_id", itemId).maybeSingle(),
+      admin.from("collection_log_sections").select("obtained_count,total_count").eq("character_id", row.character_id),
+    ]);
+    itemName = itemResult.data?.name ? String(itemResult.data.name) : `Item ${itemId}`;
+    if (!sectionsResult.error && sectionsResult.data?.length) {
+      collectionObtained = sectionsResult.data.reduce((sum, section) => sum + Number(section.obtained_count), 0);
+      collectionTotal = sectionsResult.data.reduce((sum, section) => sum + Number(section.total_count), 0);
+    }
   }
   const title = row.type === "collection_unlock" ? (itemName ?? "Collection item") : String(row.payload.title ?? "Completed path");
   const section = String(row.payload.sectionKey ?? "").replace(/[_-]+/g, " ");
@@ -46,6 +56,8 @@ async function hydrateAchievement(row: AchievementRow): Promise<Achievement> {
     detail: row.type === "collection_unlock" ? (section ? `Unlocked in ${section}` : "Added to the Collection Log") : `Completed ${kind} path`,
     itemId,
     itemIcon: itemId ? runeLiteItemIcon(itemId) : undefined,
+    collectionObtained,
+    collectionTotal,
     simulated: row.payload.simulated === true,
   };
 }
