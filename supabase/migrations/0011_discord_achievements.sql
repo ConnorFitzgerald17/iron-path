@@ -79,6 +79,11 @@ create policy "owners read achievements" on public.achievement_events for select
   exists (select 1 from public.characters c where c.id = character_id and c.user_id = auth.uid())
 );
 
+grant all on public.discord_accounts, public.discord_link_codes, public.discord_guilds,
+  public.discord_guild_memberships, public.achievement_events, public.discord_deliveries to service_role;
+grant usage, select on sequence public.achievement_events_id_seq, public.discord_deliveries_id_seq to service_role;
+grant select on public.discord_accounts, public.achievement_events to authenticated;
+
 create or replace function public.consume_discord_link_code(p_user_id uuid, p_token_hash text)
 returns boolean language plpgsql security definer set search_path = public as $$
 declare
@@ -102,6 +107,7 @@ exception when unique_violation then
 end;
 $$;
 
+revoke execute on function public.consume_discord_link_code(uuid, text) from public, anon, authenticated;
 grant execute on function public.consume_discord_link_code(uuid, text) to service_role;
 
 create or replace function public.queue_achievement_deliveries()
@@ -187,4 +193,5 @@ begin
 end;
 $$;
 
+revoke execute on function public.claim_discord_deliveries(integer) from public, anon, authenticated;
 grant execute on function public.claim_discord_deliveries(integer) to service_role;

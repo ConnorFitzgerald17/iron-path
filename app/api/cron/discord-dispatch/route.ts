@@ -28,6 +28,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`, "Content-Type": "application/json" },
         body: JSON.stringify(achievementDiscordMessage(achievement)),
+        signal: AbortSignal.timeout(8_000),
       });
       const responseBody = await response.json().catch(() => ({})) as { id?: string; retry_after?: number; message?: string };
       if (!response.ok) {

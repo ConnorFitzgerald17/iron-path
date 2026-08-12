@@ -1,9 +1,11 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(4);
+select plan(6);
 
 select has_table('public', 'achievement_events', 'achievement events table exists');
 select has_function('public', 'claim_discord_deliveries', array['integer'], 'delivery claim function exists');
+select ok(has_table_privilege('service_role', 'public.achievement_events', 'SELECT'), 'service role can load achievements');
+select ok(not has_function_privilege('anon', 'public.consume_discord_link_code(uuid,text)', 'EXECUTE'), 'anonymous callers cannot consume Discord links');
 
 insert into auth.users (id, email, raw_user_meta_data)
 values ('11111111-1111-4111-8111-111111111111', 'discord-test@example.com', '{}');
@@ -26,4 +28,3 @@ select is((select count(*) from public.discord_deliveries where status = 'pendin
 
 select * from finish();
 rollback;
-
