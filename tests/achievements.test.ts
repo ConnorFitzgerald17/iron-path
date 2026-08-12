@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectionLogProgress } from "@/lib/achievements";
+import { collectionLogProgress, collectionLogSectionDetail } from "@/lib/achievements";
 
 describe("achievement presentation", () => {
   it("formats total Collection Log progress", () => {
@@ -8,5 +8,10 @@ describe("achievement presentation", () => {
 
   it("handles an empty log without dividing by zero", () => {
     expect(collectionLogProgress(0, 0)).toBe("0 / 0 unlocked (0.0%)");
+  });
+
+  it("describes the Collection Log section without claiming an observed drop source", () => {
+    expect(collectionLogSectionDetail("Tombs of Amascut")).toBe("Collection Log section: Tombs of Amascut");
+    expect(collectionLogSectionDetail()).toBe("Added to the Collection Log");
   });
 });

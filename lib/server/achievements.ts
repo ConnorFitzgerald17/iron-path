@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { Achievement, AchievementType } from "@/lib/achievements";
+import { collectionLogSectionDetail, type Achievement, type AchievementType } from "@/lib/achievements";
 import { runeLiteItemIcon } from "@/lib/icons";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -25,20 +25,22 @@ async function hydrateAchievement(row: AchievementRow): Promise<Achievement> {
   let itemName: string | undefined;
   let collectionObtained: number | undefined;
   let collectionTotal: number | undefined;
+  let collectionSectionName: string | undefined;
   if (itemId) {
     const admin = createAdminClient();
     const [itemResult, sectionsResult] = await Promise.all([
       admin.from("catalog_items").select("name").eq("item_id", itemId).maybeSingle(),
-      admin.from("collection_log_sections").select("obtained_count,total_count").eq("character_id", row.character_id),
+      admin.from("collection_log_sections").select("section_key,name,obtained_count,total_count").eq("character_id", row.character_id),
     ]);
     itemName = itemResult.data?.name ? String(itemResult.data.name) : `Item ${itemId}`;
     if (!sectionsResult.error && sectionsResult.data?.length) {
       collectionObtained = sectionsResult.data.reduce((sum, section) => sum + Number(section.obtained_count), 0);
       collectionTotal = sectionsResult.data.reduce((sum, section) => sum + Number(section.total_count), 0);
+      const section = sectionsResult.data.find((candidate) => candidate.section_key === row.payload.sectionKey);
+      collectionSectionName = section?.name ? String(section.name) : undefined;
     }
   }
   const title = row.type === "collection_unlock" ? (itemName ?? "Collection item") : String(row.payload.title ?? "Completed path");
-  const section = String(row.payload.sectionKey ?? "").replace(/[_-]+/g, " ");
   const kind = String(row.payload.kind ?? "goal").replace(/_/g, " ");
   return {
     id: Number(row.id),
@@ -53,7 +55,7 @@ async function hydrateAchievement(row: AchievementRow): Promise<Achievement> {
     type: row.type,
     occurredAt: row.occurred_at,
     title,
-    detail: row.type === "collection_unlock" ? (section ? `Unlocked in ${section}` : "Added to the Collection Log") : `Completed ${kind} path`,
+    detail: row.type === "collection_unlock" ? collectionLogSectionDetail(collectionSectionName) : `Completed ${kind} path`,
     itemId,
     itemIcon: itemId ? runeLiteItemIcon(itemId) : undefined,
     collectionObtained,

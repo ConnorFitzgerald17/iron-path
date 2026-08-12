@@ -29,3 +29,7 @@ export function collectionLogProgress(obtained: number, total: number) {
   const percentage = total > 0 ? (obtained / total) * 100 : 0;
   return `${obtained.toLocaleString("en-GB")} / ${total.toLocaleString("en-GB")} unlocked (${percentage.toFixed(1)}%)`;
 }
+
+export function collectionLogSectionDetail(sectionName?: string) {
+  return sectionName ? `Collection Log section: ${sectionName}` : "Added to the Collection Log";
+}
