@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { discordUser, ephemeral, hasManageGuild, newLinkToken, verifyDiscordRequest } from "@/lib/server/discord";
+import { achievementDiscordMessage, discordUser, ephemeral, hasManageGuild, newLinkToken, verifyDiscordRequest } from "@/lib/server/discord";
+import { loadPublicAchievement } from "@/lib/server/achievements";
 import { createAdminClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
 
@@ -115,23 +116,27 @@ export async function POST(request: Request) {
     if (character.visibility !== "public") return NextResponse.json(ephemeral("Publish this character's Showcase before sharing its profile."));
     const profileUrl = new URL(`/showcase/${character.slug}`, siteUrl(process.env.IRON_PATH_API_ORIGIN)).toString();
     return NextResponse.json({ type: 4, data: {
-      embeds: [{ title: `${character.name}'s Iron Path`, url: profileUrl, color: 0xd5ad55,
-        description: `${character.account_type} · Combat ${character.combat_level} · Total level ${character.total_level}`,
-        image: { url: new URL(`/showcase/${character.slug}/opengraph-image`, siteUrl(process.env.IRON_PATH_API_ORIGIN)).toString() } }],
+      content: `⚔️ **${character.name}'s Iron Path**`,
+      embeds: [{ title: "RuneLite-verified character", url: profileUrl, color: 0xd5ad55,
+        description: "View goals, Collection Log progress, skills, and recent activity.",
+        fields: [
+          { name: "Account", value: String(character.account_type), inline: true },
+          { name: "Combat", value: String(character.combat_level), inline: true },
+          { name: "Total level", value: Number(character.total_level).toLocaleString("en-GB"), inline: true },
+        ], footer: { text: "Iron Path · Progress worth sharing" } }],
+      components: [{ type: 1, components: [{ type: 2, style: 5, label: "View Iron Path", url: profileUrl }] }],
       allowed_mentions: { parse: [] },
     } });
   }
 
   if (command.name === "recent") {
-    const { data } = await admin.from("achievement_events").select("public_id, type, occurred_at, payload")
+    const { data } = await admin.from("achievement_events").select("public_id")
       .eq("character_id", character.id).order("occurred_at", { ascending: false }).limit(1).maybeSingle();
     if (!data) return NextResponse.json(ephemeral("No achievements have been recorded yet."));
-    const achievementUrl = new URL(`/achievement/${data.public_id}`, siteUrl(process.env.IRON_PATH_API_ORIGIN)).toString();
-    const title = data.type === "collection_unlock" ? "Latest Collection Log unlock" : String((data.payload as Record<string, unknown>).title ?? "Completed path");
-    return NextResponse.json({ type: 4, data: { embeds: [{ title, url: achievementUrl, color: 0xd5ad55,
-      description: `Earned by **${character.name}**`, image: { url: `${achievementUrl}/opengraph-image` }, timestamp: data.occurred_at }], allowed_mentions: { parse: [] } } });
+    const achievement = await loadPublicAchievement(String(data.public_id));
+    if (!achievement) return NextResponse.json(ephemeral("That achievement is no longer available."));
+    return NextResponse.json({ type: 4, data: achievementDiscordMessage(achievement) });
   }
 
   return NextResponse.json(ephemeral("Unsupported Iron Path command."));
 }
-

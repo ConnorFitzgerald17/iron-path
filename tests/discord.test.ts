@@ -18,6 +18,7 @@ const achievement: Achievement = {
   title: "Abyssal whip",
   detail: "Unlocked in Abyssal Sire",
   itemId: 4151,
+  itemIcon: "https://static.runelite.net/cache/item/icon/4151.png",
 };
 
 describe("Discord integration", () => {
@@ -41,14 +42,17 @@ describe("Discord integration", () => {
     expect(hasManageGuild({})).toBe(false);
   });
 
-  it("renders a mention-safe achievement card with event and public-profile links", () => {
+  it("renders a native, mention-safe achievement card without relying on a large image", () => {
     process.env.IRON_PATH_API_ORIGIN = "https://ironpath.example";
     const message = achievementDiscordMessage(achievement);
 
-    expect(message.content).toContain("Ferrous");
+    expect(message.content).toContain("New Iron Path achievement");
     expect(message.allowed_mentions).toEqual({ parse: [] });
     expect(message.embeds[0].url).toBe(`https://ironpath.example/achievement/${achievement.publicId}`);
-    expect(message.embeds[0].image.url).toContain("/opengraph-image");
+    expect(message.embeds[0].description).toContain("Ferrous");
+    expect(message.embeds[0].fields.map((field) => field.name)).toEqual(["Account", "Combat", "Total level"]);
+    expect(message.embeds[0].thumbnail).toEqual({ url: achievement.itemIcon });
+    expect(message.embeds[0]).not.toHaveProperty("image");
     expect(message.components[0].components.map((button) => button.label)).toEqual(["View achievement", "View Iron Path"]);
   });
 

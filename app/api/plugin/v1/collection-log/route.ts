@@ -20,13 +20,17 @@ export async function POST(request: Request) {
     p_sync: parsed.data,
   });
   if (error) return NextResponse.json({ error: "collection_log_sync_failed" }, { status: 500 });
-  let staleOverviewOrder = admin.from("collection_log_recent_items").update({ overview_order: null })
-    .eq("character_id", device.characterId).not("overview_order", "is", null);
-  if (parsed.data.recentItemIds.length > 0) staleOverviewOrder = staleOverviewOrder.not("item_id", "in", `(${parsed.data.recentItemIds.join(",")})`);
-  const { error: orderError } = await staleOverviewOrder;
-  if (orderError) return NextResponse.json({ error: "collection_log_recent_prune_failed" }, { status: 500 });
-  const { error: recentError } = await admin.from("collection_log_recent_items").delete()
-    .eq("character_id", device.characterId).eq("source", "overview").is("overview_order", null);
-  if (recentError) return NextResponse.json({ error: "collection_log_recent_prune_failed" }, { status: 500 });
+  // RuneLite's recent-items overview is a separate interface and may not be
+  // loaded during a full-log sync. An empty list means "not captured", so it
+  // must not erase the last overview that was captured successfully.
+  if (parsed.data.recentItemIds.length > 0) {
+    const { error: orderError } = await admin.from("collection_log_recent_items").update({ overview_order: null })
+      .eq("character_id", device.characterId).not("overview_order", "is", null)
+      .not("item_id", "in", `(${parsed.data.recentItemIds.join(",")})`);
+    if (orderError) return NextResponse.json({ error: "collection_log_recent_prune_failed" }, { status: 500 });
+    const { error: recentError } = await admin.from("collection_log_recent_items").delete()
+      .eq("character_id", device.characterId).eq("source", "overview").is("overview_order", null);
+    if (recentError) return NextResponse.json({ error: "collection_log_recent_prune_failed" }, { status: 500 });
+  }
   return NextResponse.json({ accepted: true, sections: parsed.data.sections.length, capturedAt: parsed.data.capturedAt });
 }

@@ -52,16 +52,23 @@ export function hashLinkToken(token: string) {
 export function achievementDiscordMessage(achievement: Achievement) {
   const origin = siteUrl(process.env.IRON_PATH_API_ORIGIN);
   const achievementUrl = new URL(`/achievement/${achievement.publicId}`, origin).toString();
-  const imageUrl = new URL(`/achievement/${achievement.publicId}/opengraph-image`, origin).toString();
+  const collectionUnlock = achievement.type === "collection_unlock";
+  const action = collectionUnlock ? "unlocked" : "completed";
   return {
-    content: `🏆 **${achievement.characterName}** earned an Iron Path achievement`,
+    content: "🏆 **New Iron Path achievement**",
     embeds: [{
-      title: achievement.title,
-      description: achievement.detail,
+      author: { name: `${achievementLabel(achievement.type)} · RuneLite verified` },
+      title: collectionUnlock ? achievement.title : `Path complete: ${achievement.title}`,
+      description: `**${achievement.characterName}** ${action} this achievement.\n${achievement.detail}`,
       url: achievementUrl,
-      color: 0xd5ad55,
-      image: { url: imageUrl },
-      footer: { text: `${achievementLabel(achievement.type)} · ${achievement.accountType}` },
+      color: collectionUnlock ? 0xd5ad55 : 0x77966d,
+      fields: [
+        { name: "Account", value: achievement.accountType, inline: true },
+        { name: "Combat", value: String(achievement.combatLevel), inline: true },
+        { name: "Total level", value: achievement.totalLevel.toLocaleString("en-GB"), inline: true },
+      ],
+      ...(achievement.itemIcon ? { thumbnail: { url: achievement.itemIcon } } : {}),
+      footer: { text: "Iron Path · Progress worth sharing" },
       timestamp: achievement.occurredAt,
     }],
     components: [{ type: 1, components: [
