@@ -1,3 +1,5 @@
+export {};
+
 const applicationId = process.env.DISCORD_APPLICATION_ID;
 const botToken = process.env.DISCORD_BOT_TOKEN;
 if (!applicationId || !botToken) throw new Error("Set DISCORD_APPLICATION_ID and DISCORD_BOT_TOKEN before registering commands.");
