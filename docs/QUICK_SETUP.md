@@ -16,6 +16,33 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Supabase
 
+### Local Docker stack
+
+Docker can run an isolated local Supabase stack, including Postgres, Auth,
+PostgREST, Studio, and a test email inbox. It never connects to or mutates the
+hosted Supabase project.
+
+```sh
+npm run db:start
+npm run db:status
+npm run db:reset
+npm run db:test
+```
+
+The first start downloads the required Docker images. `db:status` prints the
+local API URL, publishable key, service-role key, database URL, Studio URL, and
+email-inbox URL. Copy the API URL and keys into `.env.local` using the existing
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
+`SUPABASE_SERVICE_ROLE_KEY` names, then restart `npm run dev`. Use
+`npm run db:stop` when finished.
+
+`npm run db:reset` is destructive only to the local Docker database. It replays
+every file in `supabase/migrations` and then `supabase/seed.sql`. Do not add
+`--linked` to this command unless you explicitly intend to reset a remote
+development project.
+
+### Hosted project
+
 1. Create a Supabase project.
 2. Run every SQL file in `supabase/migrations` in numeric order in its SQL editor.
 3. Enable email OTP in Authentication providers.
@@ -30,9 +57,28 @@ CRON_SECRET=generate-a-long-random-secret
 IRON_PATH_API_ORIGIN=http://localhost:3000
 IRON_PATH_WIKI_USER_AGENT=IronPath/0.1 (your-contact-url-or-email)
 FF_SIGNUPS_ENABLED=false
+DISCORD_APPLICATION_ID=your-discord-application-id
+DISCORD_PUBLIC_KEY=your-discord-application-public-key
+DISCORD_BOT_TOKEN=your-server-only-bot-token
 ```
 
 Never expose the service-role key to browser code or commit `.env.local`. Restart the dev server after changing environment variables.
+
+## Discord achievements
+
+Create an application in the Discord Developer Portal and set its Interactions
+Endpoint URL to `https://your-iron-path-origin/api/discord/interactions`. Put the
+application ID, public key, and bot token in `.env.local`, then register the
+global command:
+
+```sh
+npm run discord:register
+```
+
+Install the app to a server with permission to send messages, embed links, and
+attach files. A clan admin runs `/ironpath setup`, and each player runs
+`/ironpath link` followed by `/ironpath join`. Schedule an authenticated POST to
+`/api/cron/discord-dispatch` to deliver queued achievements.
 
 Keep `FF_SIGNUPS_ENABLED=false` while the RuneLite plugin is awaiting approval. Existing users can still sign in and use verified journals, but the app login flow will not create new auth users and first-character enrollment is blocked. Set it to `true` and restart or redeploy when registrations should open.
 

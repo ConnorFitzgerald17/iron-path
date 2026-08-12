@@ -655,6 +655,14 @@ body::before {
 .auth-message { margin-top: 12px; padding: 10px; border: 1px solid #44483f; color: #a39d8b; background: #20231e; font-size: 8px; text-align: center; }
 .auth-card footer { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 7px; color: #656c65; font-size: 7px; }
 .auth-card footer svg { color: #7d926f; }
+.discord-link-icon { width: 64px; height: 64px; margin: 0 auto 17px; display: grid; place-items: center; border: 1px solid #5865a5; border-radius: 50%; color: #aeb7ef; background: #20243a; }
+.discord-connect-button { width: 100%; height: 42px; margin-top: 6px; border: 1px solid #6977bd; color: #edf0ff; background: #5865a5; font-weight: 700; cursor: pointer; }
+.discord-connect-button:disabled { opacity: .65; cursor: wait; }
+.discord-link-result { margin-top: 10px; padding: 14px; border: 1px solid #454b43; color: #999f96; background: #191d19; text-align: left; }
+.discord-link-result strong { color: #ddd2b7; }
+.discord-link-result p, .discord-link-error { line-height: 1.6; }
+.discord-link-result a { color: #d5ad55; }
+.discord-link-error { color: #c88778; }
 .signup-closed-seal { min-height: 66px; margin-top: 24px; padding: 13px 15px; display: flex; align-items: center; gap: 12px; border: 1px solid #55482e; color: var(--brass); background: #211e17; }
 .signup-closed-seal > span { display: flex; flex-direction: column; }
 .signup-closed-seal strong { color: #d5c394; font-size: 10px; }
@@ -690,6 +698,18 @@ body::before {
 .public-empty { min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed #454a43; color: #747a72; }
 .public-empty strong { color: #aaa596; font: 500 12px var(--display); }
 .standalone-showcase section > footer { position: relative; margin-top: auto; padding-top: 45px; display: flex; align-items: center; gap: 7px; color: #687067; font-size: 8px; }
+.achievement-page > section { min-height: 650px; }
+.achievement-seal { width: 78px; height: 78px; position: relative; display: grid; place-items: center; border: 1px solid #9b814b; border-radius: 50%; color: #f0ce77; background: #2a2519; box-shadow: 0 0 45px #d5ad5530; }
+.achievement-sheet > .item-image { position: relative; margin-top: 26px; image-rendering: pixelated; filter: drop-shadow(0 14px 18px #000b); }
+.achievement-sheet h1 { max-width: 620px; font-size: clamp(36px, 7vw, 58px); }
+.achievement-owner { width: min(470px, 100%); position: relative; margin-top: 28px; padding: 14px 18px; display: flex; align-items: center; gap: 13px; border: 1px solid #393e37; background: #141714cc; text-align: left; }
+.achievement-owner > span { width: 45px; height: 45px; display: grid; place-items: center; border: 1px solid #705d38; border-radius: 50%; color: #cfb36f; font: 14px var(--display); }
+.achievement-owner > div { display: flex; flex-direction: column; }
+.achievement-owner small { color: #7d6840; font: 7px var(--mono); }
+.achievement-owner strong { margin-top: 3px; color: #ded4be; font: 17px var(--display); }
+.achievement-owner p { margin: 4px 0 0; color: #747b73; font-size: 8px; }
+.achievement-sheet time { position: relative; margin-top: 18px; color: #6f766e; font: 8px var(--mono); }
+.achievement-profile-link { position: relative; margin-top: 17px; padding: 10px 14px; display: flex; align-items: center; gap: 7px; border: 1px solid #574a30; color: #d2ba7d; background: #211e17; font-size: 8px; }
 
 @media (max-width: 1000px) {
   .app-frame { grid-template-columns: 210px minmax(0, 1fr); }
