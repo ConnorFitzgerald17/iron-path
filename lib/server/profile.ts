@@ -34,6 +34,8 @@ type CharacterRow = {
   visibility: CharacterProfile["visibility"];
   last_synced_at: string | null;
   show_recent_collections?: boolean;
+  collection_log_obtained_count?: number | null;
+  collection_log_total_count?: number | null;
   created_at?: string;
 };
 
@@ -202,10 +204,16 @@ export async function loadCharacterProfile(character: CharacterRow, options: { p
   if (queryError) throw new Error(queryError.message);
 
   const itemRows = itemsResult.data ?? [];
-  const collectionLogTotals = (collectionResult.data ?? []).reduce((totals, section) => ({
+  const sectionCollectionLogTotals = (collectionResult.data ?? []).reduce((totals, section) => ({
     obtainedCount: totals.obtainedCount + Number(section.obtained_count),
     totalCount: totals.totalCount + Number(section.total_count),
   }), { obtainedCount: 0, totalCount: 0 });
+  const collectionLogTotals = character.collection_log_obtained_count !== null
+      && character.collection_log_obtained_count !== undefined
+      && character.collection_log_total_count !== null
+      && character.collection_log_total_count !== undefined
+    ? { obtainedCount: Number(character.collection_log_obtained_count), totalCount: Number(character.collection_log_total_count) }
+    : sectionCollectionLogTotals;
   const itemIds = [...new Set([...itemRows.map((row) => Number(row.item_id)), ...(collectionSlotsResult.data ?? []).map((row) => Number(row.item_id)), ...(recentCollectionsResult.data ?? []).map((row) => Number(row.item_id))])];
   const catalogResult = itemIds.length
     ? await loadCatalogItems(itemIds)

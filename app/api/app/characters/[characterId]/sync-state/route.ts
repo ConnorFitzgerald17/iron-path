@@ -10,7 +10,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ char
   const { characterId } = await params;
   const admin = createAdminClient();
   const characterResult = await admin.from("characters")
-    .select("id, name, slug, account_type, combat_level, total_level, visibility, last_synced_at, show_recent_collections, created_at")
+    .select("id, name, slug, account_type, combat_level, total_level, visibility, last_synced_at, show_recent_collections, collection_log_obtained_count, collection_log_total_count, created_at")
     .eq("id", characterId).eq("user_id", user.id).maybeSingle();
   if (characterResult.error) return NextResponse.json({ error: characterResult.error.message }, { status: 500 });
   if (!characterResult.data) return NextResponse.json({ error: "not_found" }, { status: 404 });

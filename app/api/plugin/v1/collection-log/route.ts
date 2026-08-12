@@ -20,6 +20,13 @@ export async function POST(request: Request) {
     p_sync: parsed.data,
   });
   if (error) return NextResponse.json({ error: "collection_log_sync_failed" }, { status: 500 });
+  if (parsed.data.globalObtainedCount !== undefined && parsed.data.globalTotalCount !== undefined) {
+    const { error: totalsError } = await admin.from("characters").update({
+      collection_log_obtained_count: parsed.data.globalObtainedCount,
+      collection_log_total_count: parsed.data.globalTotalCount,
+    }).eq("id", device.characterId);
+    if (totalsError) return NextResponse.json({ error: "collection_log_totals_failed" }, { status: 500 });
+  }
   // RuneLite's recent-items overview is a separate interface and may not be
   // loaded during a full-log sync. An empty list means "not captured", so it
   // must not erase the last overview that was captured successfully.

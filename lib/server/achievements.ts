@@ -17,6 +17,8 @@ type AchievementRow = {
     combat_level: number;
     total_level: number;
     visibility: "private" | "public";
+    collection_log_obtained_count: number | null;
+    collection_log_total_count: number | null;
   };
 };
 
@@ -30,14 +32,16 @@ async function hydrateAchievement(row: AchievementRow): Promise<Achievement> {
     const admin = createAdminClient();
     const [itemResult, sectionsResult] = await Promise.all([
       admin.from("catalog_items").select("name").eq("item_id", itemId).maybeSingle(),
-      admin.from("collection_log_sections").select("section_key,name,obtained_count,total_count").eq("character_id", row.character_id),
+      admin.from("collection_log_sections").select("section_key,name").eq("character_id", row.character_id),
     ]);
     itemName = itemResult.data?.name ? String(itemResult.data.name) : `Item ${itemId}`;
     if (!sectionsResult.error && sectionsResult.data?.length) {
-      collectionObtained = sectionsResult.data.reduce((sum, section) => sum + Number(section.obtained_count), 0);
-      collectionTotal = sectionsResult.data.reduce((sum, section) => sum + Number(section.total_count), 0);
       const section = sectionsResult.data.find((candidate) => candidate.section_key === row.payload.sectionKey);
       collectionSectionName = section?.name ? String(section.name) : undefined;
+    }
+    if (row.characters.collection_log_obtained_count !== null && row.characters.collection_log_total_count !== null) {
+      collectionObtained = Number(row.characters.collection_log_obtained_count);
+      collectionTotal = Number(row.characters.collection_log_total_count);
     }
   }
   const title = row.type === "collection_unlock" ? (itemName ?? "Collection item") : String(row.payload.title ?? "Completed path");
@@ -66,7 +70,7 @@ async function hydrateAchievement(row: AchievementRow): Promise<Achievement> {
   };
 }
 
-const select = "id, public_id, character_id, type, occurred_at, payload, characters!inner(name, slug, account_type, combat_level, total_level, visibility)";
+const select = "id, public_id, character_id, type, occurred_at, payload, characters!inner(name, slug, account_type, combat_level, total_level, visibility, collection_log_obtained_count, collection_log_total_count)";
 
 export const loadPublicAchievement = cache(async (publicId: string) => {
   if (!isSupabaseConfigured()) return null;

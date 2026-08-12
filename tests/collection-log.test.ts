@@ -69,6 +69,8 @@ describe("collection log manual sync payload", () => {
     expect(collectionLogSyncSchema.safeParse({
       capturedAt: "2026-08-11T20:00:00Z",
       recentItemIds: [13262, 4151],
+      globalObtainedCount: 460,
+      globalTotalCount: 1712,
       sections: [{
         key: "bosses-abyssal-sire", category: "Bosses", name: "Abyssal Sire",
         obtainedCount: 1, totalCount: 2, capturedAt: "2026-08-11T20:00:00Z",
@@ -78,5 +80,17 @@ describe("collection log manual sync payload", () => {
         ],
       }],
     }).success).toBe(true);
+  });
+
+  it("rejects incomplete or impossible global totals", () => {
+    const payload = {
+      capturedAt: "2026-08-11T20:00:00Z",
+      sections: [{
+        key: "boss", category: "Bosses", name: "Boss", obtainedCount: 0, totalCount: 1,
+        capturedAt: "2026-08-11T20:00:00Z", slots: [],
+      }],
+    };
+    expect(collectionLogSyncSchema.safeParse({ ...payload, globalObtainedCount: 460 }).success).toBe(false);
+    expect(collectionLogSyncSchema.safeParse({ ...payload, globalObtainedCount: 2, globalTotalCount: 1 }).success).toBe(false);
   });
 });

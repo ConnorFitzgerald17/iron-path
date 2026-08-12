@@ -1051,8 +1051,8 @@ function Showcase({ profile, onVisibility, onGoalPublic, onSkill, onRecentCollec
   const visibleCollectionSlots = selectedCollectionSection?.slots.filter((slot) => (
     !normalizedCollectionQuery || sectionNameMatches || slot.name.toLowerCase().includes(normalizedCollectionQuery)
   )) ?? [];
-  const collectionObtained = profile.collectionLog.reduce((sum, section) => sum + section.obtainedCount, 0);
-  const collectionTotal = profile.collectionLog.reduce((sum, section) => sum + section.totalCount, 0);
+  const collectionObtained = profile.collectionLogTotals.obtainedCount;
+  const collectionTotal = profile.collectionLogTotals.totalCount;
   return (
     <div className="showcase-layout">
       <section className="showcase-controls">

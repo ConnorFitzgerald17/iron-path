@@ -19,4 +19,14 @@ export const collectionLogSyncSchema = z.object({
   capturedAt: z.string().datetime(),
   sections: z.array(collectionLogSectionSchema).min(1).max(500),
   recentItemIds: z.array(z.number().int().positive()).max(10).default([]),
+  globalObtainedCount: z.number().int().nonnegative().optional(),
+  globalTotalCount: z.number().int().positive().optional(),
+}).superRefine((sync, context) => {
+  const hasObtained = sync.globalObtainedCount !== undefined;
+  const hasTotal = sync.globalTotalCount !== undefined;
+  if (hasObtained !== hasTotal) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Global Collection Log counts must be provided together" });
+  } else if (hasObtained && hasTotal && sync.globalObtainedCount! > sync.globalTotalCount!) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Global Collection Log obtained count cannot exceed its total" });
+  }
 });
