@@ -55,9 +55,11 @@ export function achievementDiscordMessage(achievement: Achievement) {
   const collectionUnlock = achievement.type === "collection_unlock";
   const action = collectionUnlock ? "unlocked" : "completed";
   return {
-    content: "🏆 **New Iron Path achievement**",
+    content: achievement.simulated ? "🧪 **Iron Path test achievement**" : "🏆 **New Iron Path achievement**",
     embeds: [{
-      author: { name: `${achievementLabel(achievement.type)} · RuneLite verified` },
+      author: { name: achievement.simulated
+        ? `Test preview · ${achievementLabel(achievement.type)}`
+        : `${achievementLabel(achievement.type)} · RuneLite verified` },
       title: collectionUnlock ? achievement.title : `Path complete: ${achievement.title}`,
       description: `**${achievement.characterName}** ${action} this achievement.\n${achievement.detail}`,
       url: achievementUrl,
@@ -68,7 +70,7 @@ export function achievementDiscordMessage(achievement: Achievement) {
         { name: "Total level", value: achievement.totalLevel.toLocaleString("en-GB"), inline: true },
       ],
       ...(achievement.itemIcon ? { thumbnail: { url: achievement.itemIcon } } : {}),
-      footer: { text: "Iron Path · Progress worth sharing" },
+      footer: { text: achievement.simulated ? "Local simulation · Not real progress" : "Iron Path · Progress worth sharing" },
       timestamp: achievement.occurredAt,
     }],
     components: [{ type: 1, components: [

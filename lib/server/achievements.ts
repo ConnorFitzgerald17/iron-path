@@ -46,6 +46,7 @@ async function hydrateAchievement(row: AchievementRow): Promise<Achievement> {
     detail: row.type === "collection_unlock" ? (section ? `Unlocked in ${section}` : "Added to the Collection Log") : `Completed ${kind} path`,
     itemId,
     itemIcon: itemId ? runeLiteItemIcon(itemId) : undefined,
+    simulated: row.payload.simulated === true,
   };
 }
 
@@ -61,4 +62,3 @@ export async function loadAchievementById(id: number) {
   const { data } = await createAdminClient().from("achievement_events").select(select).eq("id", id).maybeSingle();
   return data ? hydrateAchievement(data as unknown as AchievementRow) : null;
 }
-

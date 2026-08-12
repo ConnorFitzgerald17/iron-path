@@ -16,9 +16,9 @@ export interface Achievement {
   detail: string;
   itemId?: number;
   itemIcon?: string;
+  simulated?: boolean;
 }
 
 export function achievementLabel(type: AchievementType) {
   return type === "collection_unlock" ? "Collection Log unlock" : "Path completed";
 }
-

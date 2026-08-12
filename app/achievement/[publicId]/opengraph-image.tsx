@@ -16,7 +16,7 @@ export default async function AchievementImage({ params }: { params: Promise<{ p
     <div style={{ position: "absolute", inset: 20, display: "flex", border: "1px solid #4f432d" }} />
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <div style={{ color: "#f2ce73", fontSize: 27, fontWeight: 700, letterSpacing: 6 }}>IRON PATH</div>
-      <div style={{ padding: "10px 17px", display: "flex", color: "#d5ad55", border: "1px solid #665534", fontSize: 15, letterSpacing: 3 }}>ACHIEVEMENT</div>
+      <div style={{ padding: "10px 17px", display: "flex", color: "#d5ad55", border: "1px solid #665534", fontSize: 15, letterSpacing: 3 }}>{achievement?.simulated ? "TEST PREVIEW" : "ACHIEVEMENT"}</div>
     </div>
     <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
       {achievement?.itemIcon && <div style={{ width: 180, height: 180, marginRight: 48, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #51462f", background: "#1a1d19" }}>
@@ -30,7 +30,7 @@ export default async function AchievementImage({ params }: { params: Promise<{ p
     </div>
     <div style={{ height: 84, display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #353a34" }}>
       <div style={{ display: "flex", flexDirection: "column" }}><span style={{ color: "#f2ce73", fontSize: 27 }}>{achievement?.characterName ?? "Iron Path"}</span><span style={{ marginTop: 5, color: "#727a71", fontSize: 14, letterSpacing: 2 }}>{achievement ? `${achievement.accountType.toUpperCase()} · TOTAL ${achievement.totalLevel}` : "THE ROAD REMEMBERS"}</span></div>
-      <div style={{ color: "#706f64", fontSize: 15, letterSpacing: 2 }}>RUNE-LITE VERIFIED PROGRESS</div>
+      <div style={{ color: "#706f64", fontSize: 15, letterSpacing: 2 }}>{achievement?.simulated ? "LOCAL SIMULATION · NOT REAL PROGRESS" : "RUNE-LITE VERIFIED PROGRESS"}</div>
     </div>
   </div>, size);
 }

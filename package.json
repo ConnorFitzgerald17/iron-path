@@ -15,7 +15,8 @@
     "db:reset": "supabase db reset --local",
     "db:status": "supabase status",
     "db:test": "supabase test db",
-    "discord:register": "node --env-file-if-exists=.env.local --import tsx scripts/discord-register.ts"
+    "discord:register": "node --env-file-if-exists=.env.local --import tsx scripts/discord-register.ts",
+    "discord:simulate": "node --env-file-if-exists=.env.local --import tsx scripts/discord-simulate-achievement.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

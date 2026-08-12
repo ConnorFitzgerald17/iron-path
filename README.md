@@ -13,6 +13,14 @@ Without environment variables the app uses a persisted browser demo. Copy `.env.
 
 Linked RuneLite clients refresh dashboard state every 15 seconds while automatic sync is enabled. Goal completion and reopening can be initiated from either surface without overwriting other goal settings.
 
+To preview a Collection Log achievement through the real local queue and Discord channel without earning a new item in game, run:
+
+```sh
+pnpm discord:simulate -- --character "Your RSN"
+```
+
+The simulator uses the character's newest synced recent item, labels the result as test data, and refuses to run against a hosted Supabase URL. Pass `--item-id 4151` to preview a specific item already present in the character's Collection Log data.
+
 Each web account can hold up to five journals. Link every RuneScape character once from its selected journal; RuneLite then keeps the RSN, exact account mode, combat level, total level, skills, quests, items, loot, and Collection Log isolated by RuneScape profile.
 
 To sync the Collection Log, open it in RuneLite and use its native **Search** button once. Iron Path captures the authoritative item-count transmission, queues each section against the active RuneScape profile, and exposes only skills, sections, or individual obtained items selected in Showcase settings. Skill stats remain private unless the player enables all stats or chooses individual skills.

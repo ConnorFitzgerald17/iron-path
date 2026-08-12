@@ -61,4 +61,12 @@ describe("Discord integration", () => {
     const message = achievementDiscordMessage({ ...achievement, profilePublic: false });
     expect(message.components[0].components.map((button) => button.label)).toEqual(["View achievement"]);
   });
+
+  it("clearly labels simulated achievements as test data", () => {
+    process.env.IRON_PATH_API_ORIGIN = "https://ironpath.example";
+    const message = achievementDiscordMessage({ ...achievement, simulated: true });
+    expect(message.content).toContain("test achievement");
+    expect(message.embeds[0].author.name).toContain("Test preview");
+    expect(message.embeds[0].footer.text).toContain("Not real progress");
+  });
 });
