@@ -72,7 +72,7 @@ export default async function PublicShowcase({ params }: { params: Promise<{ slu
             return <article key={goal.id}><span className={`goal-kind goal-kind--${goal.kind}`}>{icon(goal)}</span><div><small>{goal.kind.replace("_", " ")}</small><h2>{goal.title}</h2><i><b style={{ width: `${summary.progress}%` }} /></i><p>{summary.detail}</p>{goal.kind === "grind" && <div className="public-drop-row">{goal.drops.filter((drop) => drop.public).map((drop) => <span key={drop.itemId}><ItemImage src={drop.icon} alt={drop.name} size={28} /><b>{drop.quantity}×</b><small>{drop.name}</small></span>)}</div>}</div><strong>{summary.value}</strong></article>;
           })}
         </div>}
-        <CollectionLogShowcase sections={profile.collectionLog} />
+        <CollectionLogShowcase sections={profile.collectionLog} killCounts={profile.killCounts} recentCollections={profile.recentCollections} showRecent={profile.showRecentCollections} />
         <footer><Shield size={15} /> Shared by {profile.name} through Iron Path</footer>
       </section>
     </main>

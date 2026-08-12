@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { collectionLogShowcaseSummary } from "@/components/collection-log-showcase";
-import { collectionLogSectionSchema } from "@/lib/server/collection-log-schema";
+import { killCountsForCollectionSection } from "@/lib/kill-count-showcase";
+import { collectionLogSectionSchema, collectionLogSyncSchema } from "@/lib/server/collection-log-schema";
 import type { CollectionLogSection } from "@/lib/types";
 
 describe("collection log ingestion", () => {
@@ -41,5 +42,41 @@ describe("collection log ingestion", () => {
     expect(summary.totalCount).toBe(10);
     expect(summary.visibleSections.map((section) => section.key)).toEqual(["public"]);
     expect(summary.pinned.map((slot) => slot.name)).toEqual(["Pinned item"]);
+  });
+});
+
+describe("collection log kill counts", () => {
+  it("attaches boss KC to the matching showcased log", () => {
+    const counts = killCountsForCollectionSection({ name: "Abyssal Sire", category: "Bosses" }, [
+      { sourceName: "Abyssal Sire", count: 162, capturedAt: "2026-08-11T20:00:00Z" },
+      { sourceName: "Zulrah", count: 50, capturedAt: "2026-08-11T20:00:00Z" },
+    ]);
+    expect(counts.map((count) => `${count.sourceName}:${count.count}`)).toEqual(["Abyssal Sire:162"]);
+  });
+
+  it("attaches every raid mode completion count to its log", () => {
+    const counts = killCountsForCollectionSection({ name: "Tombs of Amascut", category: "Raids" }, [
+      { sourceName: "Tombs of Amascut", count: 131, capturedAt: "2026-08-11T20:00:00Z" },
+      { sourceName: "Tombs of Amascut (Entry)", count: 27, capturedAt: "2026-08-11T20:00:00Z" },
+      { sourceName: "Tombs of Amascut (Expert)", count: 4, capturedAt: "2026-08-11T20:00:00Z" },
+    ]);
+    expect(counts).toHaveLength(3);
+  });
+});
+
+describe("collection log manual sync payload", () => {
+  it("accepts one batch with native overview recents", () => {
+    expect(collectionLogSyncSchema.safeParse({
+      capturedAt: "2026-08-11T20:00:00Z",
+      recentItemIds: [13262, 4151],
+      sections: [{
+        key: "bosses-abyssal-sire", category: "Bosses", name: "Abyssal Sire",
+        obtainedCount: 1, totalCount: 2, capturedAt: "2026-08-11T20:00:00Z",
+        slots: [
+          { itemId: 13262, quantity: 1, obtained: true, slotOrder: 0 },
+          { itemId: 7979, quantity: 0, obtained: false, slotOrder: 1 },
+        ],
+      }],
+    }).success).toBe(true);
   });
 });

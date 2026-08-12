@@ -8,6 +8,7 @@ import type {
   OwnedItem,
   QuestGoal,
   QuestState,
+  KillCountSnapshot,
   SkillGoal,
 } from "@/lib/types";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -32,6 +33,7 @@ type CharacterRow = {
   total_level: number;
   visibility: CharacterProfile["visibility"];
   last_synced_at: string | null;
+  show_recent_collections?: boolean;
   created_at?: string;
 };
 
@@ -108,6 +110,7 @@ function hydrateGoal(
   items: OwnedItem[],
   questStates: Map<string, QuestState>,
   loot: Array<{ npc_id: number; items: Array<{ itemId: number; quantity: number }> }>,
+  killCounts: Map<string, KillCountSnapshot>,
   hasPluginSnapshot: boolean,
 ): Goal {
   if (goal.kind === "quest") {
@@ -130,9 +133,13 @@ function hydrateGoal(
         quantities.set(drop.itemId, (quantities.get(drop.itemId) ?? 0) + drop.quantity);
       }
     }
+    const monsterKey = questKey(goal.monster);
+    const authoritative = killCounts.get(monsterKey)
+      ?? (monsterKey.startsWith("the ") ? killCounts.get(monsterKey.slice(4)) : killCounts.get(`the ${monsterKey}`));
+    const authoritativeObserved = authoritative ? Math.max(0, authoritative.count - Math.max(0, goal.startingKc ?? 0)) : 0;
     return {
       ...goal,
-      observedKc: Math.max(goal.observedKc ?? 0, events.length),
+      observedKc: Math.max(goal.observedKc ?? 0, events.length, authoritativeObserved),
       drops: (goal.drops ?? []).map((drop) => ({
         ...drop,
         quantity: Math.max(drop.quantity ?? 0, quantities.get(drop.itemId) ?? 0),
@@ -174,19 +181,24 @@ function hydrateGoal(
 
 export async function loadCharacterProfile(character: CharacterRow, options: { publicOnly?: boolean } = {}): Promise<CharacterProfile> {
   const admin = createAdminClient();
-  const [skillsResult, questsResult, itemsResult, goalsResult, lootResult, collectionResult, collectionSlotsResult, showcaseResult, skillShowcaseResult] = await Promise.all([
+  const [skillsResult, questsResult, itemsResult, goalsResult, lootResult, killCountsResult, collectionResult, collectionSlotsResult, recentCollectionsResult, showcaseResult, skillShowcaseResult] = await Promise.all([
     admin.from("character_skills").select("skill, level, xp").eq("character_id", character.id).order("skill"),
     admin.from("character_quests").select("quest_key, state").eq("character_id", character.id),
     admin.from("character_items").select("item_id, container, quantity").eq("character_id", character.id),
     admin.from("goals").select("id, kind, title, is_public, status, settings").eq("character_id", character.id).eq("archived", false).order("sort_order"),
     admin.from("loot_events").select("npc_id, items").eq("character_id", character.id).order("occurred_at", { ascending: false }).limit(10_000),
+    admin.from("character_kill_counts").select("source_key, source_name, count, captured_at")
+      .eq("character_id", character.id).order("count", { ascending: false }),
     admin.from("collection_log_sections").select("section_key, category, name, obtained_count, total_count, captured_at").eq("character_id", character.id).order("category").order("name"),
     loadAllCollectionSlots(character.id),
+    admin.from("collection_log_recent_items").select("item_id, section_key, first_seen_at, source, overview_order")
+      .eq("character_id", character.id).order("overview_order", { ascending: true, nullsFirst: false })
+      .order("first_seen_at", { ascending: false, nullsFirst: false }).limit(10),
     admin.from("collection_log_showcase").select("selection_key, selection_type, section_key, item_id, display_mode, sort_order").eq("character_id", character.id).order("sort_order"),
     admin.from("character_skill_showcase").select("skill_key, sort_order").eq("character_id", character.id).order("sort_order"),
   ]);
 
-  const queryError = skillsResult.error ?? questsResult.error ?? itemsResult.error ?? goalsResult.error ?? lootResult.error ?? collectionResult.error ?? collectionSlotsResult.error ?? showcaseResult.error ?? skillShowcaseResult.error;
+  const queryError = skillsResult.error ?? questsResult.error ?? itemsResult.error ?? goalsResult.error ?? lootResult.error ?? killCountsResult.error ?? collectionResult.error ?? collectionSlotsResult.error ?? recentCollectionsResult.error ?? showcaseResult.error ?? skillShowcaseResult.error;
   if (queryError) throw new Error(queryError.message);
 
   const itemRows = itemsResult.data ?? [];
@@ -194,7 +206,7 @@ export async function loadCharacterProfile(character: CharacterRow, options: { p
     obtainedCount: totals.obtainedCount + Number(section.obtained_count),
     totalCount: totals.totalCount + Number(section.total_count),
   }), { obtainedCount: 0, totalCount: 0 });
-  const itemIds = [...new Set([...itemRows.map((row) => Number(row.item_id)), ...(collectionSlotsResult.data ?? []).map((row) => Number(row.item_id))])];
+  const itemIds = [...new Set([...itemRows.map((row) => Number(row.item_id)), ...(collectionSlotsResult.data ?? []).map((row) => Number(row.item_id)), ...(recentCollectionsResult.data ?? []).map((row) => Number(row.item_id))])];
   const catalogResult = itemIds.length
     ? await loadCatalogItems(itemIds)
     : { data: [], error: null };
@@ -219,7 +231,15 @@ export async function loadCharacterProfile(character: CharacterRow, options: { p
     npc_id: Number(row.npc_id),
     items: (Array.isArray(row.items) ? row.items : []) as Array<{ itemId: number; quantity: number }>,
   }));
-  const goals = (goalsResult.data ?? []).map((row) => hydrateGoal(rowToGoal(row as GoalRow), skills, items, questStates, loot, Boolean(character.last_synced_at)));
+  const killCounts = new Map((killCountsResult.data ?? []).map((row) => [String(row.source_key), {
+    sourceName: String(row.source_name), count: Number(row.count), capturedAt: String(row.captured_at),
+  } satisfies KillCountSnapshot]));
+  const profileKillCounts = (killCountsResult.data ?? []).map((row) => ({
+    sourceName: String(row.source_name),
+    count: Number(row.count),
+    capturedAt: String(row.captured_at),
+  }));
+  const goals = (goalsResult.data ?? []).map((row) => hydrateGoal(rowToGoal(row as GoalRow), skills, items, questStates, loot, killCounts, Boolean(character.last_synced_at)));
   const selections = showcaseResult.data ?? [];
   const showcasedSkillKeys = (skillShowcaseResult.data ?? []).map((row) => String(row.skill_key));
   const sectionSelections = new Map(selections.filter((row) => row.selection_type === "section").map((row) => [String(row.section_key), row]));
@@ -242,6 +262,23 @@ export async function loadCharacterProfile(character: CharacterRow, options: { p
       sortOrder: Number(selection?.sort_order ?? 0), slots,
     };
   }).filter((section) => !options.publicOnly || section.public || section.slots.some((slot) => slot.public));
+  const showRecentCollections = Boolean(character.show_recent_collections);
+  const recentCollections = ((options.publicOnly && !showRecentCollections) ? [] : (recentCollectionsResult.data ?? [])).slice(0, options.publicOnly ? 3 : 10).map((row) => {
+    const itemId = Number(row.item_id);
+    const metadata = catalog.get(itemId);
+    return {
+      itemId,
+      name: metadata?.name ?? `Item ${itemId}`,
+      icon: runeLiteItemIcon(itemId),
+      sectionKey: row.section_key ? String(row.section_key) : undefined,
+      firstSeenAt: row.first_seen_at ? String(row.first_seen_at) : undefined,
+      source: row.source as "overview" | "unlock",
+    };
+  });
+  const collectionLogUpdatedAt = (collectionResult.data ?? []).reduce<string | undefined>((latest, section) => {
+    const capturedAt = String(section.captured_at);
+    return !latest || capturedAt > latest ? capturedAt : latest;
+  }, undefined);
 
   return {
     id: character.id,
@@ -259,8 +296,12 @@ export async function loadCharacterProfile(character: CharacterRow, options: { p
     },
     items,
     goals,
+    killCounts: profileKillCounts,
     collectionLogTotals,
     collectionLog,
+    recentCollections,
+    showRecentCollections,
+    collectionLogUpdatedAt,
   };
 }
 

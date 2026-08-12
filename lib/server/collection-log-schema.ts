@@ -14,3 +14,9 @@ export const collectionLogSectionSchema = z.object({
     slotOrder: z.number().int().nonnegative(),
   })).max(200),
 });
+
+export const collectionLogSyncSchema = z.object({
+  capturedAt: z.string().datetime(),
+  sections: z.array(collectionLogSectionSchema).min(1).max(500),
+  recentItemIds: z.array(z.number().int().positive()).max(10).default([]),
+});

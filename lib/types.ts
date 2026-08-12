@@ -159,6 +159,21 @@ export interface CollectionLogSection {
   slots: CollectionLogSlot[];
 }
 
+export interface RecentCollectionItem {
+  itemId: number;
+  name: string;
+  icon?: string;
+  sectionKey?: string;
+  firstSeenAt?: string;
+  source: "overview" | "unlock";
+}
+
+export interface KillCountSnapshot {
+  sourceName: string;
+  count: number;
+  capturedAt: string;
+}
+
 export interface CharacterProfile {
   id: string;
   name: string;
@@ -172,8 +187,12 @@ export interface CharacterProfile {
   skillShowcase: SkillShowcaseSelection;
   items: OwnedItem[];
   goals: Goal[];
+  killCounts: KillCountSnapshot[];
   collectionLogTotals: { obtainedCount: number; totalCount: number };
   collectionLog: CollectionLogSection[];
+  recentCollections: RecentCollectionItem[];
+  showRecentCollections: boolean;
+  collectionLogUpdatedAt?: string;
 }
 
 export interface CharacterSummary {
@@ -194,6 +213,11 @@ export interface CharacterSyncState {
   quests: Array<{ quest: string; state: QuestState }>;
   items: Array<{ itemId: number; quantity: number; container: "bank" | "inventory" | "equipment" }>;
   goals: Array<{ id: string; status: GoalStatus }>;
+  killCounts?: KillCountSnapshot[];
+  collectionLogUpdatedAt?: string;
+  collectionLog?: CollectionLogSection[];
+  collectionLogTotals?: { obtainedCount: number; totalCount: number };
+  recentCollections?: RecentCollectionItem[];
 }
 
 export interface PluginSnapshotPayload {
@@ -204,6 +228,7 @@ export interface PluginSnapshotPayload {
   skills: SkillSnapshot[];
   quests: Array<{ quest: string; state: QuestState }>;
   items: Array<{ itemId: number; quantity: number; container: string }>;
+  killCounts: KillCountSnapshot[];
 }
 
 export interface PluginLootEvent {

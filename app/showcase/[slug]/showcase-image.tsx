@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { accountTypeLabel } from "@/lib/character-display";
 import { loadPublicProfile } from "@/lib/server/public-profile";
 import { visibleShowcaseSkills } from "@/lib/skill-showcase";
+import { killCountsForCollectionSection } from "@/lib/kill-count-showcase";
 
 export const showcaseImageSize = { width: 1200, height: 630 };
 
@@ -13,6 +14,8 @@ export async function renderShowcaseImage(slug: string) {
   const total = profile?.collectionLogTotals.totalCount ?? 0;
   const pinned = profile?.collectionLog.reduce((sum, section) => sum + section.slots.filter((slot) => slot.public && slot.obtained).length, 0) ?? 0;
   const goals = profile?.goals.slice(0, 3) ?? [];
+  const showcasedKills = profile ? profile.collectionLog.filter((section) => section.public)
+    .flatMap((section) => killCountsForCollectionSection(section, profile.killCounts)).slice(0, 4) : [];
   const showcasedSkills = profile ? visibleShowcaseSkills(profile.skills, profile.skillShowcase).slice(0, 4) : [];
   const collectionValue = total > 0 ? `${obtained}/${total}` : `${pinned}`;
   const collectionLabel = total > 0 ? "COLLECTION LOG" : "PINNED ITEMS";
@@ -54,7 +57,7 @@ export async function renderShowcaseImage(slug: string) {
 
         <div style={{ width: 390, minHeight: 250, display: "flex", flexDirection: "column", padding: "24px 26px", border: "1px solid #373c35", backgroundColor: "#151816" }}>
           <div style={{ display: "flex", justifyContent: "space-between", color: "#9d8250", fontSize: 14, letterSpacing: 3 }}>
-            <span>{goals.length ? "ON THE PATH" : "FEATURED STATS"}</span><span>{goals.length ? `${profile?.goals.length ?? 0} SHARED` : `${showcasedSkills.length} SHOWN`}</span>
+            <span>{goals.length ? "ON THE PATH" : showcasedKills.length ? "KILL COUNTS" : "FEATURED STATS"}</span><span>{goals.length ? `${profile?.goals.length ?? 0} SHARED` : showcasedKills.length ? `${showcasedKills.length} SHOWN` : `${showcasedSkills.length} SHOWN`}</span>
           </div>
           <div style={{ height: 1, margin: "16px 0 7px", display: "flex", backgroundColor: "#30362f" }} />
           {goals.length ? goals.map((goal, index) => (
@@ -66,6 +69,11 @@ export async function renderShowcaseImage(slug: string) {
                 <div style={{ color: "#d9d1bd", fontSize: 20, whiteSpace: "nowrap", overflow: "hidden" }}>{goal.title}</div>
                 <div style={{ marginTop: 4, color: "#727a71", fontSize: 12, letterSpacing: 2 }}>{goal.kind.replace("_", " ").toUpperCase()}</div>
               </div>
+            </div>
+          )) : showcasedKills.length ? showcasedKills.map((kill, index) => (
+            <div key={kill.sourceName} style={{ minHeight: 47, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: index < showcasedKills.length - 1 ? "1px solid #292e29" : "none" }}>
+              <div style={{ maxWidth: 245, color: "#d9d1bd", fontSize: 17, whiteSpace: "nowrap", overflow: "hidden" }}>{kill.sourceName}</div>
+              <div style={{ color: "#f2ce73", fontSize: 21, fontWeight: 700 }}>{`${kill.count.toLocaleString("en-US")} KC`}</div>
             </div>
           )) : showcasedSkills.map((skill, index) => (
             <div key={skill.skill} style={{ minHeight: 47, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: index < showcasedSkills.length - 1 ? "1px solid #292e29" : "none" }}>

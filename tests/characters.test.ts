@@ -66,4 +66,21 @@ describe("multi-character selection and synchronization", () => {
     expect(snapshotSchema.safeParse({ ...valid, accountType: "Unranked" }).success).toBe(false);
     expect(snapshotSchema.safeParse({ ...valid, combatLevel: 2 }).success).toBe(false);
   });
+
+  it("uses an absolute boss KC without adding the starting KC twice", () => {
+    const profile = structuredClone(demoProfile);
+    const state: CharacterSyncState = {
+      character: { id: profile.id, name: profile.name, slug: profile.slug, accountType: profile.accountType, combatLevel: profile.combatLevel, totalLevel: profile.totalLevel, visibility: profile.visibility },
+      skills: profile.skills,
+      quests: [],
+      items: [],
+      goals: profile.goals.map((goal) => ({ id: goal.id, status: goal.status ?? "active" })),
+      killCounts: [{ sourceName: "Lizardman shaman", count: 2500, capturedAt: "2026-08-11T20:00:00Z" }],
+    };
+
+    const merged = mergeCharacterSyncState(profile, state);
+    const grind = merged.goals.find((goal) => goal.id === "grind-dwh");
+
+    expect(grind?.kind === "grind" ? grind.observedKc : 0).toBe(352);
+  });
 });

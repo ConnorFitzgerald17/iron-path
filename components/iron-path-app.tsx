@@ -36,7 +36,7 @@ function readProfile(): CharacterProfile {
       obtainedCount: totals.obtainedCount + section.obtainedCount,
       totalCount: totals.totalCount + section.totalCount,
     }), { obtainedCount: 0, totalCount: 0 });
-    return { ...parsed, collectionLog, collectionLogTotals, skillShowcase: parsed.skillShowcase ?? { all: false, skills: [] } };
+    return { ...parsed, collectionLog, collectionLogTotals, recentCollections: parsed.recentCollections ?? [], showRecentCollections: parsed.showRecentCollections ?? false, killCounts: parsed.killCounts ?? [], skillShowcase: parsed.skillShowcase ?? { all: false, skills: [] } };
   } catch {
     return demoProfile;
   }
@@ -100,6 +100,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
   const [characterBusy, setCharacterBusy] = useState("");
   const saveTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const pendingGoalStatuses = useRef(new Set<string>());
+  const collectionMarker = useRef(seed.collectionLogUpdatedAt);
 
   // This is deliberately client-only: localStorage cannot be read during the server render.
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -122,10 +123,12 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     const refreshSyncState = async () => {
       if (document.visibilityState === "hidden") return;
       try {
-        const response = await fetch(`/api/app/characters/${encodeURIComponent(profile.id)}/sync-state`);
+        const collectionAfter = collectionMarker.current ? `?collectionAfter=${encodeURIComponent(collectionMarker.current)}` : "";
+        const response = await fetch(`/api/app/characters/${encodeURIComponent(profile.id)}/sync-state${collectionAfter}`);
         if (!response.ok || !active) return;
         const body = await response.json().catch(() => null) as CharacterSyncState | null;
         if (!body?.character) return;
+        collectionMarker.current = body.collectionLogUpdatedAt;
         setProfile((current) => {
           const currentStatuses = new Map(current.goals.map((goal) => [goal.id, goal.status]));
           const merged = mergeCharacterSyncState(current, body);
@@ -313,6 +316,14 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     }).then((response) => { if (!response.ok) setNotice("Stat showcase settings could not be saved."); });
   };
 
+  const updateRecentCollectionsShowcase = (value: boolean) => {
+    setProfile((current) => ({ ...current, showRecentCollections: value }));
+    if (connected) void fetch("/api/app/collection-showcase", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ characterId: profile.id, selectionType: "recent", public: value }),
+    }).then((response) => { if (!response.ok) setNotice("Recent Collection Log settings could not be saved."); });
+  };
+
   const updateManual = async (body: Record<string, unknown>) => {
     if (!connected) return;
     setSaving(true);
@@ -497,7 +508,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
 
         <div className="workspace">
           {showcaseMode ? (
-            <Showcase profile={profile} onVisibility={updateVisibility} onGoalPublic={(goal) => updateGoal(goal.id, () => ({ ...goal, public: !goal.public }))} onSkill={updateSkillShowcase} onCollection={updateCollectionSelection} />
+            <Showcase profile={profile} onVisibility={updateVisibility} onGoalPublic={(goal) => updateGoal(goal.id, () => ({ ...goal, public: !goal.public }))} onSkill={updateSkillShowcase} onRecentCollections={updateRecentCollectionsShowcase} onCollection={updateCollectionSelection} />
           ) : (
             <>
               <section className="goal-column">
@@ -506,6 +517,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
                   <button className="square-button" onClick={() => setAddOpen(true)} aria-label="Add goal"><Plus size={17} /></button>
                 </div>
                 {recommendations.length > 0 && <RecommendationPanel recommendations={recommendations} onFollow={(recommendation) => void followRecommendation(recommendation)} />}
+                {profile.recentCollections.length > 0 && <RecentCollections items={profile.recentCollections} />}
                 <div className="goal-card-list">
                   {activeGoals.map((goal, index) => <GoalCard key={goal.id} goal={goal} profile={profile} active={goal.id === selectedId} index={index} onSelect={() => setSelectedId(goal.id)} />)}
                   {!matchingGoals.length && <div className="empty-journal"><BookOpen size={25} /><strong>{profile.goals.length ? "No paths match" : "Your journal is empty"}</strong><small>{profile.goals.length ? "Try another search." : "Add a quest, item grind, or level grind."}</small></div>}
@@ -540,6 +552,17 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
       {settingsOpen && <AccountDialog onClose={() => setSettingsOpen(false)} connected={connected} />}
     </div>
   );
+}
+
+function RecentCollections({ items }: { items: CharacterProfile["recentCollections"] }) {
+  return <section className="recent-collections">
+    <header><span>RECENT COLLECTIONS LOGGED</span><small>{items.length}</small></header>
+    <div>{items.slice(0, 10).map((item) => <article key={item.itemId} title={item.name}>
+      <ItemImage src={item.icon} alt={item.name} size={38} />
+      <strong>{item.name}</strong>
+      <small>{item.firstSeenAt ? timeAgo(item.firstSeenAt) : "Latest log"}</small>
+    </article>)}</div>
+  </section>;
 }
 
 function GoalCard({ goal, profile, active, index, onSelect }: { goal: Goal; profile: CharacterProfile; active: boolean; index: number; onSelect: () => void }) {
@@ -997,7 +1020,7 @@ function ConnectDialog({ onClose, onReset, characterId, connected }: { onClose: 
   );
 }
 
-function Showcase({ profile, onVisibility, onGoalPublic, onSkill, onCollection }: { profile: CharacterProfile; onVisibility: (value: CharacterProfile["visibility"]) => void; onGoalPublic: (goal: Goal) => void; onSkill: (skill: string, value: boolean, sortOrder?: number) => void; onCollection: (sectionKey: string, selectionType: "section" | "item", value: boolean, displayMode: CollectionLogDisplayMode, itemId?: number) => void }) {
+function Showcase({ profile, onVisibility, onGoalPublic, onSkill, onRecentCollections, onCollection }: { profile: CharacterProfile; onVisibility: (value: CharacterProfile["visibility"]) => void; onGoalPublic: (goal: Goal) => void; onSkill: (skill: string, value: boolean, sortOrder?: number) => void; onRecentCollections: (value: boolean) => void; onCollection: (sectionKey: string, selectionType: "section" | "item", value: boolean, displayMode: CollectionLogDisplayMode, itemId?: number) => void }) {
   const publicGoals = profile.goals.filter((goal) => goal.public);
   const orderedSkills = sortedSkills(profile.skills);
   const visibleSkills = visibleShowcaseSkills(profile.skills, profile.skillShowcase);
@@ -1050,7 +1073,10 @@ function Showcase({ profile, onVisibility, onGoalPublic, onSkill, onCollection }
           })}</div>
           {profile.skillShowcase.all && <small className="skill-showcase-hint">Turn off “Show all stats” to choose individual skills.</small>}
         </div>
-        <div className="collection-heading"><span><h2>Collection log</h2><small>{profile.collectionLog.filter((section) => section.public).length} sections showcased</small></span><strong>{collectionObtained}/{collectionTotal}</strong></div>
+        <div className="collection-heading"><span><h2>Collection log</h2><small>Boss and raid KC is included automatically with showcased logs</small></span><strong>{collectionObtained}/{collectionTotal}</strong></div>
+        <div className="showcase-toggles collection-feature-toggles">
+          <button aria-pressed={profile.showRecentCollections} onClick={() => onRecentCollections(!profile.showRecentCollections)}><Sparkles size={17} /><span><strong>Show recent collection items</strong><small>Automatically displays the latest 3 synced items</small></span><i className={profile.showRecentCollections ? "on" : ""}><b /></i></button>
+        </div>
         {profile.collectionLog.length > 0 ? <div className="collection-browser">
           <label className="collection-search"><Search size={14} /><input value={collectionQuery} onChange={(event) => setCollectionQuery(event.target.value)} placeholder="Search sections or items" aria-label="Search collection log" />{collectionQuery && <button onClick={() => setCollectionQuery("")} aria-label="Clear collection search"><X size={13} /></button>}</label>
           <div className="collection-tabs" role="tablist" aria-label="Collection log categories">
@@ -1058,10 +1084,10 @@ function Showcase({ profile, onVisibility, onGoalPublic, onSkill, onCollection }
           </div>
           <div className="collection-browser-body">
             <nav className="collection-section-nav" aria-label="Collection log sections">
-              {matchingCollectionSections.map((section) => <button className={section.key === selectedCollectionSection?.key ? "active" : ""} key={section.key} onClick={() => setCollectionSectionKey(section.key)}><span>{normalizedCollectionQuery && <small>{section.category}</small>}<strong>{section.name}</strong></span><em>{section.obtainedCount}/{section.totalCount}</em></button>)}
+              {matchingCollectionSections.map((section) => <button className={`${section.key === selectedCollectionSection?.key ? "active" : ""}${section.totalCount > 0 && section.obtainedCount >= section.totalCount ? " green-logged" : ""}`} key={section.key} onClick={() => setCollectionSectionKey(section.key)}><span>{normalizedCollectionQuery && <small>{section.category}</small>}<strong>{section.name}</strong></span><em>{section.obtainedCount}/{section.totalCount}</em></button>)}
               {!matchingCollectionSections.length && <div className="collection-no-results"><Search size={17} /><span><strong>No matches</strong><small>Try another item or section.</small></span></div>}
             </nav>
-            {selectedCollectionSection && <article className="collection-section-detail">
+            {selectedCollectionSection && <article className={`collection-section-detail${selectedCollectionSection.totalCount > 0 && selectedCollectionSection.obtainedCount >= selectedCollectionSection.totalCount ? " green-logged" : ""}`}>
               <header>
                 <span><small>{selectedCollectionSection.category}</small><strong>{selectedCollectionSection.name}</strong><em>Scanned {timeAgo(selectedCollectionSection.capturedAt)}</em></span>
                 <b>{selectedCollectionSection.obtainedCount}/{selectedCollectionSection.totalCount}</b>
@@ -1092,7 +1118,7 @@ function Showcase({ profile, onVisibility, onGoalPublic, onSkill, onCollection }
               return <div key={goal.id}><span className={`goal-kind goal-kind--${goal.kind}`}>{goalIcon(goal)}</span><span><small>{goal.kind.replace("_", " ")}</small><strong>{goal.title}</strong><i><b style={{ width: `${meta.percent}%` }} /></i></span><em>{meta.label}</em></div>;
             })}
           </div>}
-          <CollectionLogShowcase sections={profile.collectionLog} />
+          <CollectionLogShowcase sections={profile.collectionLog} killCounts={profile.killCounts} recentCollections={profile.recentCollections} showRecent={profile.showRecentCollections} />
           <footer><span className="brand-mark brand-mark--small" aria-hidden="true" /><strong>IRON PATH</strong><small>Data synced from RuneLite</small></footer>
         </div>
       </section>

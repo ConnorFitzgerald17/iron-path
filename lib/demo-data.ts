@@ -24,6 +24,11 @@ export const demoProfile: CharacterProfile = {
     { skill: "Fletching", level: 78, xp: 1629200 }
   ],
   skillShowcase: { all: false, skills: ["magic", "prayer", "construction"] },
+  killCounts: [
+    { sourceName: "The Corrupted Gauntlet", count: 287, capturedAt: new Date(Date.now() - 2 * 60_000).toISOString() },
+    { sourceName: "Abyssal Sire", count: 162, capturedAt: new Date(Date.now() - 2 * 60_000).toISOString() },
+    { sourceName: "Chambers of Xeric", count: 41, capturedAt: new Date(Date.now() - 2 * 60_000).toISOString() },
+  ],
   items: [
     { itemId: 8778, name: "Oak plank", quantity: 124, icon: itemIcon("Oak plank.png"), container: "bank" },
     { itemId: 1941, name: "Swamp paste", quantity: 42, icon: itemIcon("Swamp paste.png"), container: "bank" },
@@ -38,6 +43,13 @@ export const demoProfile: CharacterProfile = {
     { itemId: 1617, name: "Uncut diamond", quantity: 68, icon: itemIcon("Uncut diamond.png"), container: "bank" }
   ],
   collectionLogTotals: { obtainedCount: 12, totalCount: 32 },
+  collectionLogUpdatedAt: new Date(Date.now() - 18 * 60_000).toISOString(),
+  recentCollections: [
+    { itemId: 23956, name: "Crystal armour seed", icon: runeLiteItemIcon(23956), sectionKey: "bosses:the-gauntlet", firstSeenAt: new Date(Date.now() - 18 * 60_000).toISOString(), source: "unlock" },
+    { itemId: 4714, name: "Ahrim's robeskirt", icon: runeLiteItemIcon(4714), sectionKey: "bosses:barrows-chests", source: "overview" },
+    { itemId: 4708, name: "Ahrim's hood", icon: runeLiteItemIcon(4708), sectionKey: "bosses:barrows-chests", source: "overview" },
+  ],
+  showRecentCollections: true,
   collectionLog: [
     {
       key: "bosses:barrows-chests", category: "Bosses", name: "Barrows Chests",

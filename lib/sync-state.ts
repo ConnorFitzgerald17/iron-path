@@ -9,6 +9,7 @@ export function mergeCharacterSyncState(profile: CharacterProfile, state: Charac
   const skills = new Map(state.skills.map((skill) => [key(skill.skill), skill]));
   const quests = new Map(state.quests.map((quest) => [key(quest.quest), quest.state as QuestState]));
   const statuses = new Map(state.goals.map((goal) => [goal.id, goal.status]));
+  const killCounts = new Map((state.killCounts ?? []).map((kill) => [key(kill.sourceName), kill.count]));
   const metadata = new Map(profile.items.map((item) => [item.itemId, item]));
   const items: OwnedItem[] = state.items.map((item) => ({
     ...item,
@@ -32,7 +33,11 @@ export function mergeCharacterSyncState(profile: CharacterProfile, state: Charac
       const skill = skills.get(key(goal.skill));
       return { ...goal, currentLevel: skill?.level ?? goal.currentLevel, currentXp: skill?.xp ?? goal.currentXp, status };
     }
-    return { ...goal, status };
+    const monsterKey = key(goal.monster);
+    const totalKc = killCounts.get(monsterKey)
+      ?? (monsterKey.startsWith("the ") ? killCounts.get(monsterKey.slice(4)) : killCounts.get(`the ${monsterKey}`));
+    const authoritativeObserved = totalKc === undefined ? 0 : Math.max(0, totalKc - Math.max(0, goal.startingKc));
+    return { ...goal, status, observedKc: Math.max(goal.observedKc, authoritativeObserved) };
   });
   return {
     ...profile,
@@ -46,5 +51,10 @@ export function mergeCharacterSyncState(profile: CharacterProfile, state: Charac
     skills: state.skills,
     items,
     goals,
+    killCounts: state.killCounts ?? profile.killCounts,
+    collectionLog: state.collectionLog ?? profile.collectionLog,
+    collectionLogTotals: state.collectionLogTotals ?? profile.collectionLogTotals,
+    recentCollections: state.recentCollections ?? profile.recentCollections,
+    collectionLogUpdatedAt: state.collectionLogUpdatedAt ?? profile.collectionLogUpdatedAt,
   };
 }

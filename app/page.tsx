@@ -18,7 +18,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   if (!user) redirect("/login");
 
   const { data: rows, error } = await createAdminClient().from("characters")
-    .select("id, name, slug, account_type, combat_level, total_level, visibility, last_synced_at, created_at")
+    .select("id, name, slug, account_type, combat_level, total_level, visibility, last_synced_at, show_recent_collections, created_at")
     .eq("user_id", user.id).order("created_at");
   if (error) throw new Error(error.message);
   if (!rows?.length) return signupsEnabled() ? <CharacterOnboarding /> : <SignupClosed />;
