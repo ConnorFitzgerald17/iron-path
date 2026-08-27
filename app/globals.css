@@ -536,6 +536,13 @@ body::before {
 .link-steps { margin: 0 0 15px; padding: 0; display: grid; gap: 9px; list-style: none; }
 .link-steps li { display: flex; align-items: center; gap: 9px; color: #999c91; font-size: 9px; }
 .link-steps b { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #494e47; border-radius: 50%; color: #b99b5e; font: 8px var(--mono); }
+.how-to-steps { margin: 22px 0 0; padding: 0; display: grid; gap: 10px; list-style: none; }
+.how-to-steps li { min-height: 65px; padding: 11px; display: flex; align-items: flex-start; gap: 11px; border: 1px solid #323732; background: #1d201d; }
+.how-to-steps li > b { width: 23px; height: 23px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid #5d5034; border-radius: 50%; color: #d1ae68; font: 8px var(--mono); }
+.how-to-steps li > span { display: flex; flex-direction: column; }
+.how-to-steps strong { color: #dcd2ba; font: 500 11px var(--display); }
+.how-to-steps small { margin-top: 5px; color: #7e857d; font-size: 8px; line-height: 1.55; }
+.how-to-steps em { color: #b99b5e; font-style: normal; }
 .link-code { width: 100%; min-height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #6d5a35; color: #e8d29b; background: repeating-linear-gradient(135deg, #2b271c, #2b271c 8px, #27241b 8px, #27241b 16px); cursor: pointer; }
 .link-code small { color: #8b7649; font: 7px var(--mono); letter-spacing: .1em; }
 .link-code strong { margin-top: 7px; font: 600 24px var(--mono); letter-spacing: .12em; }
@@ -731,6 +738,8 @@ body::before {
   .mobile-menu { flex: 0 0 auto; }
   .crumbs { flex: 1; }
   .sync-note, .topbar-actions .ghost-button { display: none; }
+  .topbar-actions .help-button { width: 31px; padding: 0; display: flex; justify-content: center; }
+  .help-button span { display: none; }
   .workspace:not(:has(.showcase-layout)) { display: block; }
   .goal-column { border-right: 0; border-bottom: 1px solid var(--line-soft); }
   .goal-card-list { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }

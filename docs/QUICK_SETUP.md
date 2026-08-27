@@ -64,6 +64,38 @@ DISCORD_BOT_TOKEN=your-server-only-bot-token
 
 Never expose the service-role key to browser code or commit `.env.local`. Restart the dev server after changing environment variables.
 
+### Production auth email
+
+The app uses Supabase Auth for passwordless magic links. The branded template is
+stored at `supabase/templates/magic-link.html`; the matching `config.toml` entry
+is used by the local Supabase stack. Hosted Supabase projects do not receive
+local email-template settings automatically, so configure production separately:
+
+1. Add and verify a sending domain in Resend. A dedicated subdomain such as
+   `auth.ironpathosrs.com` keeps authentication mail separate from other mail.
+2. Add Resend's SPF and DKIM records to the domain's DNS. Add a DMARC record as
+   well, and disable Resend link tracking for authentication email.
+3. In **Supabase Dashboard > Authentication > Emails > SMTP Settings**, enable
+   custom SMTP and enter:
+   - Host: `smtp.resend.com`
+   - Port: `465` or `587`
+   - Username: `resend`
+   - Password: a server-side Resend API key
+   - Sender name: `Iron Path`
+   - Sender email: a verified address such as `login@auth.ironpathosrs.com`
+4. In **Authentication > Email Templates > Magic Link**, set the subject to
+   `Sign in to Iron Path` and copy in the contents of
+   `supabase/templates/magic-link.html`. Keep every `{{ .ConfirmationURL }}`
+   placeholder intact.
+5. Set the Supabase Auth site URL to `https://www.ironpathosrs.com` and allow
+   `https://www.ironpathosrs.com/auth/callback` as a redirect URL.
+6. Send a test magic link to an address outside the sending domain. Confirm that
+   the sender, button, callback, and SPF/DKIM/DMARC results are correct before
+   setting `FF_SIGNUPS_ENABLED=true` and redeploying.
+
+Do not commit the Resend API key. It belongs only in the hosted Supabase SMTP
+settings (or an environment variable for a self-hosted/local SMTP setup).
+
 ## Discord achievements
 
 Create an application in the Discord Developer Portal and set its Interactions

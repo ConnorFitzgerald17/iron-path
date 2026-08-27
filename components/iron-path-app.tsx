@@ -88,6 +88,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
   const [mobileNav, setMobileNav] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [showcaseMode, setShowcaseMode] = useState(false);
   const [query, setQuery] = useState("");
   const [hydrated, setHydrated] = useState(connected);
@@ -501,6 +502,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
           <div className="crumbs"><span>{profile.name}</span><ChevronRight size={13} /><strong>{showcaseMode ? "Showcase" : selected?.title ?? "Journal"}</strong></div>
           <div className="topbar-actions">
             <span className="sync-note">{saving ? <LoaderCircle className="spin" size={13} /> : <RefreshCw size={13} />} {saving ? "Saving…" : `Synced ${timeAgo(profile.lastSyncedAt)}`}</span>
+            <button className="ghost-button help-button" onClick={() => setHelpOpen(true)} aria-label="How to use Iron Path"><CircleHelp size={15} /> <span>How to</span></button>
             <button className="ghost-button" onClick={() => setConnectOpen(true)}><Link2 size={15} /> Plugin</button>
             <button className="avatar-button" onClick={() => setSettingsOpen(true)} aria-label="Account menu"><UserRound size={17} /></button>
           </div>
@@ -548,8 +550,26 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
       {notice && <button className="save-notice" onClick={() => setNotice("")}>{notice}<X size={14} /></button>}
       {addOpen && <AddGoalDialog onClose={() => setAddOpen(false)} onAdd={addGoal} profile={profile} connected={connected} />}
       {connectOpen && <ConnectDialog onClose={() => setConnectOpen(false)} onReset={resetDemo} characterId={profile.id} connected={connected} />}
+      {helpOpen && <HowToDialog onClose={() => setHelpOpen(false)} />}
       {characterCreateOpen && <CharacterDialog onClose={() => setCharacterCreateOpen(false)} onCreated={characterCreated} />}
       {settingsOpen && <AccountDialog onClose={() => setSettingsOpen(false)} connected={connected} />}
+    </div>
+  );
+}
+
+function HowToDialog({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="how-to-title">
+      <button className="modal-backdrop" onClick={onClose} aria-label="Close" />
+      <div className="modal-panel modal-panel--narrow">
+        <header><div><small>QUICK START</small><h2 id="how-to-title">How to use Iron Path</h2></div><button className="icon-button" onClick={onClose} aria-label="Close how-to"><X size={19} /></button></header>
+        <ol className="how-to-steps">
+          <li><b>1</b><span><strong>Connect RuneLite</strong><small>Select <em>Plugin</em>, copy the code, paste it into the Iron Path plugin, then press <em>Connect</em>.</small></span></li>
+          <li><b>2</b><span><strong>Sync your progress</strong><small>Open your bank and Collection Log in-game. Enable automatic sync in the plugin to keep your journal current.</small></span></li>
+          <li><b>3</b><span><strong>Choose what comes next</strong><small>Add quest, item, or level goals. Use Showcase to share only the progress you choose.</small></span></li>
+        </ol>
+        <p className="security-note"><Shield size={15} /> Iron Path never receives your Jagex, RuneLite, or email credentials.</p>
+      </div>
     </div>
   );
 }
