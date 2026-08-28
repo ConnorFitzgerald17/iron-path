@@ -396,7 +396,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     }
     setCharacterMenuOpen(false);
     setMobileNav(false);
-    router.push(`/?character=${encodeURIComponent(character.slug)}`);
+    router.push(`/journal?character=${encodeURIComponent(character.slug)}`);
     router.refresh();
   };
 
@@ -412,7 +412,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     }
     setCharacterList((current) => current.filter((row) => row.id !== character.id));
     if (character.id === profile.id) {
-      router.push(body.nextCharacter ? `/?character=${encodeURIComponent(body.nextCharacter.slug)}` : "/");
+      router.push(body.nextCharacter ? `/journal?character=${encodeURIComponent(body.nextCharacter.slug)}` : "/journal");
       router.refresh();
       return;
     }
@@ -424,7 +424,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     setCharacterCreateOpen(false);
     setCharacterMenuOpen(false);
     setCharacterList((current) => [...current, character]);
-    router.push(`/?character=${encodeURIComponent(character.slug)}`);
+    router.push(`/journal?character=${encodeURIComponent(character.slug)}`);
     router.refresh();
   };
 

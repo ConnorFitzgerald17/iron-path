@@ -17,7 +17,7 @@ export function LoginForm({ allowSignups }: { allowSignups: boolean }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback`,
+        emailRedirectTo: `${location.origin}/auth/callback?next=/journal`,
         shouldCreateUser: allowSignups,
       },
     });
@@ -28,7 +28,7 @@ export function LoginForm({ allowSignups }: { allowSignups: boolean }) {
 
   return (
     <main className="auth-page">
-      <Link href="/" className="auth-back"><ArrowLeft size={15} /> Back to journal</Link>
+      <Link href="/" className="auth-back"><ArrowLeft size={15} /> Back to home</Link>
       <section className="auth-card">
         <span className="brand-mark" aria-hidden="true" />
         <small>THE ROAD REMEMBERS</small>

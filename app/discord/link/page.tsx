@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function DiscordLinkPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;
   return <main className="auth-page discord-link-page">
-    <Link href="/" className="auth-back"><ArrowLeft size={15} /> Back to journal</Link>
+    <Link href="/journal" className="auth-back"><ArrowLeft size={15} /> Back to journal</Link>
     <section className="auth-card">
       <span className="discord-link-icon"><MessageCircle size={30} /></span>
       <small>CLAN ACHIEVEMENTS</small>
@@ -18,4 +18,3 @@ export default async function DiscordLinkPage({ searchParams }: { searchParams: 
     </section>
   </main>;
 }
-
