@@ -57,12 +57,26 @@ CRON_SECRET=generate-a-long-random-secret
 IRON_PATH_API_ORIGIN=http://localhost:3000
 IRON_PATH_WIKI_USER_AGENT=IronPath/0.1 (your-contact-url-or-email)
 FF_SIGNUPS_ENABLED=false
+ANALYTICS_ADMIN_EMAILS=you@example.com
 DISCORD_APPLICATION_ID=your-discord-application-id
 DISCORD_PUBLIC_KEY=your-discord-application-public-key
 DISCORD_BOT_TOKEN=your-server-only-bot-token
 ```
 
 Never expose the service-role key to browser code or commit `.env.local`. Restart the dev server after changing environment variables.
+
+## Private analytics
+
+Apply `0015_private_product_analytics.sql`, then set `ANALYTICS_ADMIN_EMAILS`
+to the comma-separated, case-insensitive list of account emails allowed to open
+`/analytics`. Authorized owners also get an **Analytics** link in the journal
+sidebar. The dashboard shows 7, 30, and 90-day audience, acquisition, page,
+product-action, signup, character, and RuneLite activity.
+
+Events are stored in Supabase and read only through a service-role aggregate
+function. Raw analytics have RLS enabled with no browser read policy. Tracking
+does not store IP addresses, full referrer URLs, query strings, search text, goal
+names, or user-agent strings, and browsers with Do Not Track enabled are skipped.
 
 ## Discord achievements
 

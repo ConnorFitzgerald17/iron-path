@@ -22,6 +22,7 @@ import { ItemImage } from "./item-image";
 import { CollectionLogShowcase } from "./collection-log-showcase";
 import { SkillShowcase } from "./skill-showcase";
 import { CharacterEnrollment } from "./character-enrollment";
+import { trackEvent } from "@/lib/analytics/client";
 
 const STORAGE_KEY = "iron-path-demo-profile-v1";
 
@@ -79,7 +80,7 @@ function goalMeta(goal: Goal, profile: CharacterProfile) {
   return { label: `Level ${value.projectedLevel} banked`, percent: value.percent };
 }
 
-export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: { initialProfile?: CharacterProfile; characters?: CharacterSummary[]; mode?: "demo" | "connected" }) {
+export function IronPathApp({ initialProfile, characters = [], mode = "demo", showAnalytics = false }: { initialProfile?: CharacterProfile; characters?: CharacterSummary[]; mode?: "demo" | "connected"; showAnalytics?: boolean }) {
   const seed = initialProfile ?? demoProfile;
   const connected = mode === "connected";
   const router = useRouter();
@@ -197,7 +198,10 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     if (pendingGoalStatuses.current.has(goalId)) return;
     const previous = profile.goals.find((goal) => goal.id === goalId)?.status ?? "active";
     setProfile((current) => ({ ...current, goals: current.goals.map((goal) => goal.id === goalId ? { ...goal, status } : goal) }));
-    if (!connected) return;
+    if (!connected) {
+      trackEvent(status === "complete" ? "goal_completed" : "goal_reopened", { goalKind: profile.goals.find((goal) => goal.id === goalId)?.kind });
+      return;
+    }
 
     pendingGoalStatuses.current.add(goalId);
     setSaving(true);
@@ -218,6 +222,8 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     if (!saved) {
       setProfile((current) => ({ ...current, goals: current.goals.map((goal) => goal.id === goalId ? { ...goal, status: previous } : goal) }));
       setNotice("The goal status could not be saved. Try again.");
+    } else {
+      trackEvent(status === "complete" ? "goal_completed" : "goal_reopened", { goalKind: profile.goals.find((goal) => goal.id === goalId)?.kind });
     }
   };
 
@@ -238,6 +244,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
       created = body.goal as Goal;
     }
     setProfile((current) => ({ ...current, goals: [...current.goals, created] }));
+    trackEvent("goal_created", { goalKind: created.kind });
     setSelectedId(created.id);
     setAddOpen(false);
   };
@@ -362,7 +369,11 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
       return;
     }
     setProfile((current) => ({ ...current, visibility }));
-    if (connected) void fetch("/api/app/character", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ characterId: profile.id, visibility }) }).then((response) => { if (!response.ok) setNotice("Profile visibility could not be saved."); });
+    if (connected) void fetch("/api/app/character", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ characterId: profile.id, visibility }) }).then((response) => {
+      if (!response.ok) setNotice("Profile visibility could not be saved.");
+      else if (visibility === "public") trackEvent("profile_published");
+    });
+    else if (visibility === "public") trackEvent("profile_published");
   };
 
   const deleteGoal = async (goal: Goal) => {
@@ -372,6 +383,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
       if (!response.ok) return setNotice("The goal could not be deleted.");
     }
     setProfile((current) => ({ ...current, goals: current.goals.filter((item) => item.id !== goal.id) }));
+    trackEvent("goal_deleted", { goalKind: goal.kind });
     setSelectedId(profile.goals.find((item) => item.id !== goal.id)?.id ?? "");
   };
 
@@ -396,6 +408,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
     }
     setCharacterMenuOpen(false);
     setMobileNav(false);
+    trackEvent("character_switched");
     router.push(`/journal?character=${encodeURIComponent(character.slug)}`);
     router.refresh();
   };
@@ -460,7 +473,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
         <nav className="primary-nav" aria-label="Primary navigation">
           <button className={!showcaseMode ? "active" : ""} onClick={() => setShowcaseMode(false)}><LayoutDashboard size={17} /> Journal</button>
           <button onClick={() => setAddOpen(true)}><Plus size={17} /> New goal</button>
-          <button className={showcaseMode ? "active" : ""} onClick={() => setShowcaseMode(true)}><Trophy size={17} /> Showcase</button>
+          <button className={showcaseMode ? "active" : ""} onClick={() => { if (!showcaseMode) trackEvent("showcase_opened"); setShowcaseMode(true); }}><Trophy size={17} /> Showcase</button>
         </nav>
 
         <div className="side-heading"><span>ACTIVE GOALS</span><span>{profile.goals.filter((goal) => goal.status !== "complete").length}</span></div>
@@ -490,7 +503,8 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
         </>}
 
         <div className="sidebar-footer">
-          <button onClick={() => setConnectOpen(true)}><span className={profile.lastSyncedAt ? "connection-dot" : "connection-dot connection-dot--idle"} /> {profile.lastSyncedAt ? "RuneLite connected" : "Connect RuneLite"}</button>
+          {showAnalytics && <a href="/analytics"><BarChart3 size={16} /> Analytics</a>}
+          <button onClick={() => { setConnectOpen(true); trackEvent("plugin_link_started"); }}><span className={profile.lastSyncedAt ? "connection-dot" : "connection-dot connection-dot--idle"} /> {profile.lastSyncedAt ? "RuneLite connected" : "Connect RuneLite"}</button>
           <button onClick={() => setSettingsOpen(true)}><Settings size={16} /> Account</button>
         </div>
       </aside>
@@ -501,7 +515,7 @@ export function IronPathApp({ initialProfile, characters = [], mode = "demo" }: 
           <div className="crumbs"><span>{profile.name}</span><ChevronRight size={13} /><strong>{showcaseMode ? "Showcase" : selected?.title ?? "Journal"}</strong></div>
           <div className="topbar-actions">
             <span className="sync-note">{saving ? <LoaderCircle className="spin" size={13} /> : <RefreshCw size={13} />} {saving ? "Saving…" : `Synced ${timeAgo(profile.lastSyncedAt)}`}</span>
-            <button className="ghost-button" onClick={() => setConnectOpen(true)}><Link2 size={15} /> Plugin</button>
+            <button className="ghost-button" onClick={() => { setConnectOpen(true); trackEvent("plugin_link_started"); }}><Link2 size={15} /> Plugin</button>
             <button className="avatar-button" onClick={() => setSettingsOpen(true)} aria-label="Account menu"><UserRound size={17} /></button>
           </div>
         </header>

@@ -5,6 +5,7 @@ import { loadCharacterProfile, type CharacterRow } from "@/lib/server/profile";
 import { ACTIVE_CHARACTER_COOKIE, characterSummary, chooseCharacter, type CharacterSummaryRow } from "@/lib/server/characters";
 import { createAdminClient, createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { signupsEnabled } from "@/lib/server/feature-flags";
+import { isAnalyticsAdmin } from "@/lib/server/analytics";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -30,5 +31,5 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
   const selected = chooseCharacter(characters, requestedSlug, rememberedSlug);
   const row = rows.find((character) => character.id === selected.id)!;
   const profile = await loadCharacterProfile(row as CharacterRow);
-  return <IronPathApp key={profile.id} mode="connected" initialProfile={profile} characters={characters} />;
+  return <IronPathApp key={profile.id} mode="connected" initialProfile={profile} characters={characters} showAnalytics={isAnalyticsAdmin(user)} />;
 }

@@ -3,9 +3,10 @@
 import { ArrowLeft, Mail, Shield } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { trackEvent } from "@/lib/analytics/client";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/browser";
 
-export function LoginForm({ allowSignups }: { allowSignups: boolean }) {
+export function LoginForm({ allowSignups, next = "/journal" }: { allowSignups: boolean; next?: string }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const configured = isSupabaseConfigured();
@@ -17,10 +18,11 @@ export function LoginForm({ allowSignups }: { allowSignups: boolean }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback?next=/journal`,
+        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         shouldCreateUser: allowSignups,
       },
     });
+    if (!error) trackEvent("login_started");
     setMessage(error
       ? allowSignups ? error.message : "That email does not have an early-access account yet."
       : "Check your inbox for the sign-in link.");

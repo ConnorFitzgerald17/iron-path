@@ -33,7 +33,7 @@ To sync the Collection Log, open it in RuneLite and use its native **Search** bu
 4. Add local and production callback URLs ending in `/auth/callback`.
 5. Set the publishable and service-role keys in Vercel.
 
-The service-role key is used only by server route handlers. Browser access is protected by row-level security. Profiles and goals remain private until explicitly published.
+The service-role key is used only by server route handlers. Browser access is protected by row-level security. Profiles and goals remain private until explicitly published. Set `ANALYTICS_ADMIN_EMAILS` to the owner account email (or a comma-separated allowlist) to enable the private `/analytics` dashboard.
 
 ## Wiki catalog
 
